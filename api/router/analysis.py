@@ -66,6 +66,8 @@ def _build_initial_state(req: AnalyzeRequest, history: list) -> OpsState:
         "execution_results":     None,
         "past_incidents":        None,
         "structured_output":     None,
+        "streamlit_approved_actions": None,
+        "streamlit_skip_execution":   False,
     }
 
 

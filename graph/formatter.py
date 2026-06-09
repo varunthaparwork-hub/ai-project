@@ -102,7 +102,11 @@ Instructions:
 - recommended_actions: extract every numbered action; set is_executable=true only for 
   actions that mention restocking, applying a discount, resuming/pausing a campaign, 
   or creating a support ticket
-- historical_references: only populate if past incidents are listed above
+- historical_references: ONLY include past incidents that are DIRECTLY relevant to the
+  current situation AND have similarity >= 0.50. If an incident is about a completely
+  different problem (e.g. current issue is overstock but incident is about a campaign
+  budget), leave historical_references empty. Quality over quantity — 0 is better than
+  3 irrelevant entries.
 - execution_summary: populate from the EXECUTION SUMMARY section above (null if skipped)
 - full_analysis_markdown: copy the ANALYSIS TEXT verbatim
 """

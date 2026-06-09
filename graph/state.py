@@ -74,3 +74,9 @@ class OpsState(TypedDict):
     # Formatter node writes the fully structured OpsResponse here (as a dict).
     # Streamlit, REST API, and evaluator consume this instead of the raw markdown.
     structured_output: Optional[dict]
+
+    # Streamlit / API pre-approval fields used by hitl_streamlit_node.
+    # Streamlit or the REST approve endpoint injects these before graph resumption.
+    # When not set (eval, direct API calls), hitl_streamlit_node auto-skips execution.
+    streamlit_approved_actions: Optional[List[dict]]
+    streamlit_skip_execution: bool

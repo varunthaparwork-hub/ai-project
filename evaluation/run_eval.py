@@ -37,29 +37,13 @@ load_dotenv()
 os.environ.setdefault("LANGCHAIN_TAGS", "eval")
 
 
-# ── Auto-skip HITL during evaluation ─────────────────────────────────────────
-# We patch hitl_node BEFORE importing the graph so the compiled graph uses it.
-import graph.hitl as _hitl_module
-
-def _hitl_noop(state):
-    """Auto-skip HITL in eval mode — approve nothing, no stdin prompt."""
-    print("  [EVAL] HITL bypassed — auto-skipping action execution.")
-    return {**state, "approved_actions": [], "skip_execution": True}
-
-_hitl_module.hitl_node = _hitl_noop
-
-# ── Now safe to import the graph (it will use the patched hitl_node) ─────────
-# NOTE: workflow.py imports hitl_node at build time, so we must patch BEFORE
-# importing workflow. The monkey-patch above handles this correctly because
-# workflow.py does: from graph.hitl import hitl_node
-# which binds the name at import time. We patch the module attribute AND
-# rebuild the graph below to ensure it picks up the patched function.
-
-# Re-import workflow AFTER patching so graph is compiled with patched hitl
-import importlib
-import graph.workflow as _wf_module
-importlib.reload(_wf_module)   # rebuild graph with patched hitl
-ops_app = _wf_module.ops_app
+# ── Import the streamlit-compatible graph (no HITL blocking) ──────────────────
+# workflow_streamlit.py uses hitl_streamlit_node, which reads
+# streamlit_approved_actions from state instead of calling input().
+# Because eval never sets streamlit_approved_actions, hitl_streamlit_node
+# automatically returns skip_execution=True — HITL is a no-op in eval.
+# No monkey-patching or importlib.reload needed.
+from graph.workflow_streamlit import streamlit_app_graph as ops_app
 
 from graph.state import OpsState
 from memory.long_term import seed_memory_from_db
@@ -231,6 +215,8 @@ def run_scenario(scenario: Scenario, fast: bool = False) -> dict:
         "execution_results": None,
         "past_incidents":   None,
         "structured_output": None,
+        "streamlit_approved_actions": None,
+        "streamlit_skip_execution":   False,
     }
 
     config = {"configurable": {"thread_id": f"eval-{scenario['id']}"}}
