@@ -11,3 +11,9 @@ wheels/
 
 # Environment variables
 .env
+
+# Runtime observability logs — generated on every API call, not source code
+observability/runs.jsonl
+
+# Evaluation results — generated outputs, not source code
+evaluation/results/
