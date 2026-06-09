@@ -1,0 +1,47 @@
+# agents/inventory_agent.py
+# Responsible for one job only: checking stock levels and identifying
+# whether out-of-stock or low-stock products caused lost sales.
+
+from langgraph.prebuilt import create_react_agent  # builds the ReAct agent graph
+from agents.base import llm                         # shared Azure LLM
+from tools.inventory_tools import (
+    get_all_inventory,        # returns stock levels for ALL products at once
+    get_inventory_status,     # returns stock level for a single specific product
+    get_stockout_products,    # returns only products with zero stock (quickest check)
+    get_overstocked_products, # returns only products with stock > 2x reorder point
+)
+
+# Inventory-only tools — agent cannot call sales or campaign tools
+INVENTORY_TOOLS = [
+    get_all_inventory,
+    get_inventory_status,
+    get_stockout_products,
+    get_overstocked_products,
+]
+
+# Tells the LLM its role and what a good response looks like
+INVENTORY_SYSTEM_PROMPT = """
+You are the Inventory Analysis Agent for an e-commerce operations team.
+Your job is to check stock levels and identify ALL inventory problems:
+  - OUT OF STOCK: products with zero stock (stock == 0)
+  - LOW STOCK: products at or below their reorder point
+  - OVERSTOCKED: products with stock > 2x their reorder point (overstock_ratio > 2)
+
+When asked about overstocked products, call get_overstocked_products or get_all_inventory
+and report every product where is_overstocked is True, sorted by overstock_ratio descending.
+
+Always provide: product name, current stock, reorder point, overstock_ratio,
+estimated financial impact of holding excess inventory, and recommended action
+(discount, return-to-supplier, or demand stimulation).
+"""
+
+
+def run_inventory_agent(question: str) -> str:
+    """
+    Runs the Inventory Agent with a given question.
+    Returns a string with inventory analysis and restock recommendations.
+    Called by inventory_node in agent_nodes.py.
+    """
+    agent = create_react_agent(llm, INVENTORY_TOOLS, prompt=INVENTORY_SYSTEM_PROMPT)
+    result = agent.invoke({"messages": [("human", question)]})
+    return result["messages"][-1].content  # last message = final answer from LLM

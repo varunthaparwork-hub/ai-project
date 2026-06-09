@@ -1,0 +1,369 @@
+{
+  "timestamp": "2026-06-03T15:56:40.175250",
+  "total": 15,
+  "passed": 14,
+  "results": [
+    {
+      "id": "FP-001",
+      "category": "full_pipeline",
+      "question": "Why did revenue drop so much yesterday? Give me a full diagnosis.",
+      "passed": false,
+      "elapsed_s": 33.7,
+      "structural": {},
+      "deepeval": {},
+      "severity": null,
+      "one_liner": null,
+      "error": "1 validation error for CriticDecision\nconfidence_score\n  Field required [type=missing, input_value={'needs_revision': True, ...racy and completeness.'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing"
+    },
+    {
+      "id": "FP-002",
+      "category": "full_pipeline",
+      "question": "What went wrong with the business on June 1 2026? What should we do?",
+      "passed": true,
+      "elapsed_s": 76.0,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": false,
+          "root_cause_keywords": true,
+          "min_actions": true,
+          "executable_action": true,
+          "memory_retrieved": true
+        },
+        "score": 0.833
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "high",
+      "one_liner": "The e-commerce store experienced a 37.4% revenue drop on June 1, 2026, due to inventory shortages, a paused Facebook campaign, and customer support inefficiencies.",
+      "error": null
+    },
+    {
+      "id": "FP-003",
+      "category": "full_pipeline",
+      "question": "Give me a complete operations report comparing June 1 to May 31.",
+      "passed": true,
+      "elapsed_s": 88.4,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": true,
+          "root_cause_keywords": true,
+          "min_actions": true,
+          "executable_action": true,
+          "memory_retrieved": null
+        },
+        "score": 1.0
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "critical",
+      "one_liner": "Revenue dropped by 39.3% on June 1, 2026, due to stock outages, paused campaigns, checkout errors, and customer support delays.",
+      "error": null
+    },
+    {
+      "id": "SD-001",
+      "category": "single_domain",
+      "question": "Which products are currently out of stock?",
+      "passed": true,
+      "elapsed_s": 36.8,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": null,
+          "root_cause_keywords": true,
+          "min_actions": true,
+          "executable_action": true,
+          "memory_retrieved": null
+        },
+        "score": 1.0
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "high",
+      "one_liner": "Nike Running Shoes and Sony Headphones are out of stock, potentially impacting revenue.",
+      "error": null
+    },
+    {
+      "id": "SD-002",
+      "category": "single_domain",
+      "question": "What is the current status of our marketing campaigns?",
+      "passed": true,
+      "elapsed_s": 42.2,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": null,
+          "root_cause_keywords": true,
+          "min_actions": true,
+          "executable_action": false,
+          "memory_retrieved": null
+        },
+        "score": 0.75
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "high",
+      "one_liner": "Marketing campaign data is missing, potentially indicating either inactivity or reporting issues, with unclear impact on revenue.",
+      "error": null
+    },
+    {
+      "id": "SD-003",
+      "category": "single_domain",
+      "question": "How are our customer support metrics looking? Are complaints high?",
+      "passed": true,
+      "elapsed_s": 37.1,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": null,
+          "root_cause_keywords": true,
+          "min_actions": true,
+          "executable_action": null,
+          "memory_retrieved": null
+        },
+        "score": 1.0
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "critical",
+      "one_liner": "The absence of comprehensive data across key domains indicates systemic issues requiring investigation.",
+      "error": null
+    },
+    {
+      "id": "SD-004",
+      "category": "single_domain",
+      "question": "What were our sales numbers on June 1?",
+      "passed": true,
+      "elapsed_s": 37.5,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": null,
+          "root_cause_keywords": true,
+          "min_actions": null,
+          "executable_action": null,
+          "memory_retrieved": null
+        },
+        "score": 1.0
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "high",
+      "one_liner": "Sales dropped significantly on June 1, 2026, due to stockouts of Nike Running Shoes and Sony Headphones.",
+      "error": null
+    },
+    {
+      "id": "CMP-001",
+      "category": "comparison",
+      "question": "How does revenue on June 1 compare to May 31? What changed?",
+      "passed": true,
+      "elapsed_s": 49.3,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": true,
+          "root_cause_keywords": true,
+          "min_actions": true,
+          "executable_action": null,
+          "memory_retrieved": null
+        },
+        "score": 1.0
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "critical",
+      "one_liner": "Revenue dropped by 39.3% on June 1, 2026, primarily due to stock outages of high-performing products and increased returns.",
+      "error": null
+    },
+    {
+      "id": "CMP-002",
+      "category": "comparison",
+      "question": "Did inventory levels change between May 31 and June 1?",
+      "passed": true,
+      "elapsed_s": 39.9,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": null,
+          "root_cause_keywords": true,
+          "min_actions": true,
+          "executable_action": true,
+          "memory_retrieved": null
+        },
+        "score": 1.0
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "high",
+      "one_liner": "Nike Running Shoes and Sony Headphones stockouts on June 1, 2026, caused a 12% revenue drop.",
+      "error": null
+    },
+    {
+      "id": "CMP-003",
+      "category": "comparison",
+      "question": "Compare campaign performance on June 1 vs May 31.",
+      "passed": true,
+      "elapsed_s": 46.1,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": null,
+          "root_cause_keywords": true,
+          "min_actions": true,
+          "executable_action": true,
+          "memory_retrieved": null
+        },
+        "score": 1.0
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "high",
+      "one_liner": "The e-commerce store experienced a significant drop in marketing performance on June 1, 2026, primarily due to the paused 'Summer Sale - Facebook' campaign, compounded by inventory shortages and delayed customer support.",
+      "error": null
+    },
+    {
+      "id": "MEM-001",
+      "category": "memory",
+      "question": "Has this kind of stock outage happened before? What did we do last time?",
+      "passed": true,
+      "elapsed_s": 52.3,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": null,
+          "root_cause_keywords": true,
+          "min_actions": true,
+          "executable_action": true,
+          "memory_retrieved": true
+        },
+        "score": 1.0
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "high",
+      "one_liner": "Stockouts of Nike Running Shoes and Sony Headphones on June 3, 2026, highlight critical gaps in inventory management.",
+      "error": null
+    },
+    {
+      "id": "MEM-002",
+      "category": "memory",
+      "question": "Have we ever had a campaign budget run out like this before? What was the outcome?",
+      "passed": true,
+      "elapsed_s": 43.3,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": null,
+          "root_cause_keywords": true,
+          "min_actions": true,
+          "executable_action": false,
+          "memory_retrieved": true
+        },
+        "score": 0.8
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "high",
+      "one_liner": "Critical data gaps across domains hinder root cause identification for the revenue drop.",
+      "error": null
+    },
+    {
+      "id": "EDGE-001",
+      "category": "edge_case",
+      "question": "Everything looks fine today right?",
+      "passed": true,
+      "elapsed_s": 53.6,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": null,
+          "root_cause_keywords": null,
+          "min_actions": null,
+          "executable_action": null,
+          "memory_retrieved": null
+        },
+        "score": 1.0
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "critical",
+      "one_liner": "Systemic data unavailability and stockouts of high-demand products disrupted operations on June 2 and June 3, 2026.",
+      "error": null
+    },
+    {
+      "id": "EDGE-002",
+      "category": "edge_case",
+      "question": "What products should we discount right now?",
+      "passed": true,
+      "elapsed_s": 39.5,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": null,
+          "root_cause_keywords": true,
+          "min_actions": true,
+          "executable_action": true,
+          "memory_retrieved": null
+        },
+        "score": 1.0
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "critical",
+      "one_liner": "Critical stock outages and missing sales data are causing significant revenue losses and operational challenges.",
+      "error": null
+    },
+    {
+      "id": "EDGE-003",
+      "category": "edge_case",
+      "question": "Should we pause any campaigns today?",
+      "passed": true,
+      "elapsed_s": 36.2,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": null,
+          "root_cause_keywords": true,
+          "min_actions": true,
+          "executable_action": false,
+          "memory_retrieved": null
+        },
+        "score": 0.75
+      },
+      "deepeval": {
+        "scores": {},
+        "average": null
+      },
+      "severity": "critical",
+      "one_liner": "Critical gaps in data availability and integration hinder decision-making and risk revenue losses.",
+      "error": null
+    }
+  ]
+}

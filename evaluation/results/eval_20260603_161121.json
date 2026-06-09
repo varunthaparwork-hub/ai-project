@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-06-03T16:11:21.703228",
+  "total": 1,
+  "passed": 1,
+  "results": [
+    {
+      "id": "FP-002",
+      "category": "full_pipeline",
+      "question": "What went wrong with the business on June 1 2026? What should we do?",
+      "passed": true,
+      "elapsed_s": 70.9,
+      "structural": {
+        "checks": {
+          "domain_coverage": true,
+          "severity_match": false,
+          "root_cause_keywords": true,
+          "min_actions": true,
+          "executable_action": true,
+          "memory_retrieved": true
+        },
+        "score": 0.833
+      },
+      "deepeval": {
+        "scores": {
+          "AnswerRelevancyMetric": 0.852,
+          "FaithfulnessMetric": 1.0,
+          "GEval": 1.0
+        },
+        "average": 0.951
+      },
+      "severity": "high",
+      "one_liner": "Sales dropped 37.4% on June 1, 2026, due to stockouts, a paused Facebook campaign, and increased customer complaints.",
+      "error": null
+    }
+  ]
+}

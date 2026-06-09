@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+evaluation/results/
+.git/
+.gitignore
+uv.lock
+data/__pycache__/
