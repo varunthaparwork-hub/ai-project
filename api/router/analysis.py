@@ -11,6 +11,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from api.schemas import AnalyzeRequest, AnalyzeResponse
+from api.guardrails import validate_question
 from graph.state import OpsState
 
 router = APIRouter()
@@ -172,9 +173,11 @@ def _try_save_incident(thread_id: str, structured: dict, target_date_str: str) -
 
 def _invoke_pipeline_streaming(req: AnalyzeRequest, event_queue: queue.Queue) -> dict:
     """
-    Runs the LangGraph pipeline with stream_mode='updates', emitting a 'node'
-    SSE event for each completed node.  After the stream finishes, reads the
-    final state from the LangGraph checkpoint (no second invoke).
+    Runs the LangGraph pipeline with multi-mode streaming. Emits:
+      • 'node'  SSE events — one per completed graph node (existing behaviour)
+      • 'token' SSE events — one per LLM token produced inside the synthesis node
+      • 'done'  SSE event  — final answer + structured output + proposed actions
+      • 'error' SSE event  — on any exception
     """
     def _emit(event_type: str, **kwargs):
         event_queue.put({"type": event_type, **kwargs})
@@ -189,10 +192,26 @@ def _invoke_pipeline_streaming(req: AnalyzeRequest, event_queue: queue.Queue) ->
     from graph.workflow_streamlit import streamlit_app_graph as ops_app
 
     try:
-        # Accumulate the full result by merging every node's output delta.
-        # This is reliable in all LangGraph 1.x versions — no get_state() needed.
+        # Multi-mode streaming:
+        #   "updates"  → one dict per completed node — drives existing node-level events
+        #   "messages" → one (message_chunk, metadata) per LLM token — used to stream
+        #                synthesis tokens to the UI in real time
+        # In multi-mode, each yielded item is a tuple (mode_name, payload).
         accumulated: dict = {}
-        for chunk in ops_app.stream(initial_state, config=config, stream_mode="updates"):
+        for mode, chunk in ops_app.stream(
+            initial_state, config=config, stream_mode=["updates", "messages"]
+        ):
+            if mode == "messages":
+                msg_chunk, metadata = chunk
+                # Only stream tokens from the synthesis node — every other LLM call
+                # (planner, agents, critic, formatter) stays internal.
+                if metadata.get("langgraph_node") == "synthesis":
+                    content = getattr(msg_chunk, "content", "")
+                    if content:
+                        _emit("token", content=content)
+                continue
+
+            # mode == "updates" — existing node-event path
             for node_name, node_output in chunk.items():
                 if isinstance(node_output, dict):
                     accumulated.update(node_output)
@@ -326,6 +345,7 @@ def _log_obs(req: AnalyzeRequest, result: dict, latency_ms: int):
 @router.post("/analyze/stream")
 async def analyze_stream(req: AnalyzeRequest):
     """SSE endpoint — emits node progress events then a final 'done' event."""
+    req.question = validate_question(req.question)
     event_queue: queue.Queue = queue.Queue()
     loop = asyncio.get_event_loop()
 
@@ -359,6 +379,7 @@ async def analyze_stream(req: AnalyzeRequest):
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze(req: AnalyzeRequest):
     """Non-streaming analysis endpoint."""
+    req.question = validate_question(req.question)
     loop = asyncio.get_event_loop()
     try:
         result = await loop.run_in_executor(_executor, lambda: _invoke_pipeline(req))

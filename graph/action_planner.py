@@ -64,12 +64,29 @@ AVAILABLE PRODUCT NAMES (use exactly as shown — fetched live from database):
 AVAILABLE CAMPAIGN NAMES (use exactly as shown — fetched live from database):
 {campaign_names}
 
-RULES:
-- Only propose actions directly supported by evidence in the analysis
+EXPLICIT COMMAND OVERRIDE (highest priority — beats everything else):
+If the user's request directly names a product/campaign AND specifies an action and amount, you MUST
+propose exactly that action — regardless of what the analysis says. The user's explicit command is authoritative.
+Examples that trigger override:
+  "restock Samsung TV by 20 units"         → restock_product("Samsung TV", 20), is_action_needed=True
+  "apply 15% discount on Sony Headphones"  → apply_discount("Sony Headphones", 15, 72), is_action_needed=True
+  "pause Google Shopping campaign"         → pause_campaign("Google Shopping", ...), is_action_needed=True
+  "resume Facebook Summer Sale"            → resume_campaign("Facebook Summer Sale"), is_action_needed=True
+  "create a high priority ticket for X"    → create_support_ticket(...), is_action_needed=True
+Do NOT let an overstock or stockout analysis override an explicit restock/discount command from the user.
+
+VAGUE-REQUEST RULE:
+If the user request is a vague question like "can we do some actions on it?", "what should we do?",
+"any fixes?" — and there is NO concrete product/quantity in the request — DO NOT echo the request
+as an action. Instead, derive concrete actions from the analysis (e.g. discount specific overstocked
+products named in the analysis). If the analysis is also empty, set is_action_needed=False and
+return an empty proposed_actions list. NEVER produce an action whose description is just the user's
+question with "Execute as requested:" prepended — that is meaningless and forbidden.
+
+ANALYSIS-DERIVED RULES (only apply when user question is NOT a direct command):
 - If the user question is purely analytical (e.g. "why did sales drop") set is_action_needed=False
 - If the analysis identifies OVERSTOCKED products, propose apply_discount to clear excess inventory
 - If the analysis identifies OUT-OF-STOCK products, propose restock_product
-- If the user asks to "fix", "restock", "run a discount", "pause", or "create a ticket" set is_action_needed=True
 - Match product and campaign names EXACTLY from the lists above — do not invent or paraphrase names
 
 Analysis:

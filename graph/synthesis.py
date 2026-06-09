@@ -120,6 +120,22 @@ def synthesis_node(state: OpsState) -> OpsState:
         response = llm.invoke([HumanMessage(content=prompt)])
         return {**state , "synthesis_draft":response.content}
     
+    # Shortcut: if no agents ran this is a direct action command, not an analysis request.
+    # Return a minimal acknowledged draft instead of hallucinating from empty reports.
+    all_skipped = not any([
+        state.get("sales_analysis"), state.get("inventory_analysis"),
+        state.get("marketing_analysis"), state.get("support_analysis"),
+    ])
+    if all_skipped:
+        user_q = state.get("user_question", "")
+        print("\n[SYNTHESIS] No agent data — direct command, bypassing LLM synthesis.")
+        return {**state, "synthesis_draft": (
+            f"## Summary\nDirect operational command received: '{user_q}'. "
+            f"No analysis required — proceeding to action execution.\n\n"
+            f"## Root Causes\nN/A — this is a user-initiated operational command.\n\n"
+            f"## Recommended Actions\n1. Execute as requested: {user_q}"
+        )}
+
     # First pass - produce initial draft from agent reports
     print("\n[SYNTHESIS] Producing initial draft....")
 

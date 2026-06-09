@@ -9,6 +9,7 @@ from tools.inventory_tools import (
     get_inventory_status,     # returns stock level for a single specific product
     get_stockout_products,    # returns only products with zero stock (quickest check)
     get_overstocked_products, # returns only products with stock > 2x reorder point
+    get_stock_status_on_date, # returns historical stock_status per product for a past date
 )
 
 # Inventory-only tools — agent cannot call sales or campaign tools
@@ -17,6 +18,7 @@ INVENTORY_TOOLS = [
     get_inventory_status,
     get_stockout_products,
     get_overstocked_products,
+    get_stock_status_on_date,
 ]
 
 # Tells the LLM its role and what a good response looks like
@@ -29,6 +31,11 @@ Your job is to check stock levels and identify ALL inventory problems:
 
 When asked about overstocked products, call get_overstocked_products or get_all_inventory
 and report every product where is_overstocked is True, sorted by overstock_ratio descending.
+
+HISTORICAL STOCKOUT QUESTIONS (e.g. "did stockouts cause the June 1 drop?"):
+  Use get_stock_status_on_date(date) — NOT get_all_inventory or get_stockout_products.
+  Those tools show CURRENT stock; get_stock_status_on_date shows what was out-of-stock
+  on the specific past date. Always use the target date from the question for this tool.
 
 Always provide: product name, current stock, reorder point, overstock_ratio,
 estimated financial impact of holding excess inventory, and recommended action

@@ -47,6 +47,20 @@ from api.router import analysis, actions, history, obs, chats
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Apply DB migrations (idempotent — safe to run on every startup)
+    from data.db import get_pool
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("ALTER TABLE inventory ADD COLUMN IF NOT EXISTS discount_pct NUMERIC(5,2) NOT NULL DEFAULT 0")
+        await conn.execute("ALTER TABLE inventory ADD COLUMN IF NOT EXISTS discount_expires_at TIMESTAMPTZ")
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS support_tickets (
+                id TEXT PRIMARY KEY, issue_type TEXT NOT NULL, description TEXT,
+                priority TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open',
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        """)
+
     # Seed Qdrant memory on startup
     from memory.long_term import seed_memory_from_db
     await seed_memory_from_db()

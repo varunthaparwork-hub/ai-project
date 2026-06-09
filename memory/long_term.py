@@ -231,19 +231,34 @@ async def seed_memory_from_db() -> None:
         if isinstance(row.get("actions_taken"), str):
             row["actions_taken"] = json.loads(row["actions_taken"])
 
-    # Delete and recreate the collection so stale/duplicate points from
-    # previous runs (caused by non-deterministic hash IDs) are wiped clean.
+    # Incremental seed: keep the existing collection. Point IDs are deterministic
+    # (sha256 of incident_id) so we can ask Qdrant whether each incident is already
+    # embedded and skip re-embedding when it is. Big restart-time win because
+    # fastembed is the slow part, not Qdrant upsert.
     client = get_client()
-    existing_names = [c.name for c in client.get_collections().collections]
-    if COLLECTION_NAME in existing_names:
-        client.delete_collection(COLLECTION_NAME)
-        print(f"[MEMORY] Dropped existing '{COLLECTION_NAME}' collection for clean reseed.")
     ensure_collection()
-    print(f"[MEMORY] Seeding {len(incidents)} past incidents into Qdrant...")
 
+    skipped = 0
+    embedded = 0
     for incident in incidents:
+        inc_id    = incident["id"]
+        qdrant_id = int(hashlib.sha256(inc_id.encode()).hexdigest()[:16], 16)
+
+        try:
+            existing = client.retrieve(
+                collection_name=COLLECTION_NAME,
+                ids=[qdrant_id],
+                with_vectors=False,
+            )
+        except Exception:
+            existing = []
+
+        if existing:
+            skipped += 1
+            continue
+
         save_incident(
-            incident_id          = incident["id"],
+            incident_id          = inc_id,
             date                 = str(incident["date"]),
             description          = incident["description"],
             root_causes          = incident["root_causes"],
@@ -251,5 +266,6 @@ async def seed_memory_from_db() -> None:
             outcome              = incident["outcome"],
             resolution_time_days = incident["resolution_time_days"],
         )
+        embedded += 1
 
-    print("[MEMORY] Seeding complete.")
+    print(f"[MEMORY] Seeding complete. Skipped {skipped} (already embedded) / Embedded {embedded} (new).")

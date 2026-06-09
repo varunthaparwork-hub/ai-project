@@ -27,6 +27,13 @@ from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 
+# Force UTF-8 stdout so box-drawing chars (─ ✓ ✗) render on Windows cp1252 consoles.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 load_dotenv()
 
 # ── LangSmith tracing (already enabled via .env) ─────────────────────────────

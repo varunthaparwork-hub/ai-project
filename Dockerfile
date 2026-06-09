@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application source
 COPY agents/        agents/
+COPY api/           api/
 COPY data/          data/
 COPY evaluation/    evaluation/
 COPY graph/         graph/
@@ -25,11 +26,10 @@ COPY schemas/       schemas/
 COPY tools/         tools/
 COPY main.py        main.py
 
-# Streamlit port
-EXPOSE 8501
+# FastAPI port
+EXPOSE 8000
 
-# Default: run Streamlit UI
-CMD ["streamlit", "run", "streamlit_app.py", \
-     "--server.port=8501", \
-     "--server.address=0.0.0.0", \
-     "--server.headless=true"]
+# Default: run FastAPI via uvicorn
+CMD ["uvicorn", "api.main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000"]

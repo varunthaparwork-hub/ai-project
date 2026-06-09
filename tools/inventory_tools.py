@@ -90,3 +90,47 @@ def get_stockout_products() -> dict:
         "products": [{"product": r["product_name"], "reorder_qty": r["reorder_qty"]}
                      for r in rows],
     }
+
+
+@tool
+def get_stock_status_on_date(date: str) -> dict:
+    """
+    Returns the stock status of every product on a specific past date.
+    Use this to check HISTORICAL stockout conditions — e.g. which products were
+    out-of-stock on June 1 when revenue dropped. This is different from current
+    inventory: it reads from the product_sales table which records stock_status
+    per product per day.
+    Date must be in YYYY-MM-DD format.
+    """
+    rows = fetchall_sync(
+        "SELECT product_name, units_sold, revenue, stock_status "
+        "FROM product_sales WHERE date = $1 ORDER BY revenue DESC",
+        date,
+    )
+    if not rows:
+        return {"error": f"No product sales data found for {date}"}
+
+    out_of_stock  = [r for r in rows if r["stock_status"] == "out_of_stock"]
+    low_stock     = [r for r in rows if r["stock_status"] == "low_stock"]
+    in_stock      = [r for r in rows if r["stock_status"] == "in_stock"]
+
+    return {
+        "date": date,
+        "summary": {
+            "out_of_stock_count": len(out_of_stock),
+            "low_stock_count":    len(low_stock),
+            "in_stock_count":     len(in_stock),
+        },
+        "out_of_stock_products": [
+            {"product": r["product_name"], "units_sold": r["units_sold"], "revenue": float(r["revenue"])}
+            for r in out_of_stock
+        ],
+        "low_stock_products": [
+            {"product": r["product_name"], "units_sold": r["units_sold"], "revenue": float(r["revenue"])}
+            for r in low_stock
+        ],
+        "in_stock_products": [
+            {"product": r["product_name"], "units_sold": r["units_sold"], "revenue": float(r["revenue"])}
+            for r in in_stock
+        ],
+    }

@@ -10,7 +10,7 @@
 from datetime import date, timedelta
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field
-from agents.base import llm
+from agents.base import llm_fast as llm  # routing is a short structured call — cheaper tier is sufficient
 from graph.state import OpsState
 
 
@@ -19,7 +19,7 @@ class PlannerDecision(BaseModel):
     needs_inventory: bool = Field(description="Does this question require inventory analysis?")
     needs_marketing: bool = Field(description="Does this question require marketing/campaign analysis?")
     needs_support: bool = Field(description="Does this question require customer support analysis?")
-    target_date: str = Field(description="The primary date being analyzed in YYYY-MM-DD format. Infer from the question using the today/yesterday context provided.")
+    target_date: str = Field(description="The primary date being analyzed in YYYY-MM-DD format. If the question is a follow-up that does not specify a new date (e.g. 'What about inventory?', 'Did stockouts cause it?', 'How can we fix it?'), use the previous_target_date provided in the prompt instead of today's date.")
     comparison_date: str = Field(description="The comparison date in YYYY-MM-DD format. Infer from the question — usually the day before target_date or same weekday last week.")
 
 # Prompt is a template — dates are injected at runtime inside planner_node
@@ -32,9 +32,40 @@ Today's date is {today}.
 Yesterday was {yesterday}.
 One week ago was {last_week}.
 Same weekday last week was {same_weekday_last_week}.
+Previous analysis target date (from earlier in this conversation): {previous_target_date}
+
+DATE RULE: If the current question does not explicitly mention a new date and is clearly a
+follow-up to the previous question (e.g. starts with "What about", "Did", "How about",
+"Can you also", "And the", or is very short), set target_date = previous_target_date.
+Only use today's date if the question is explicitly about right now with no prior context.
 
 Previous conversation (last 3 turns — use this to understand follow-up questions like "why?" or "what about inventory?"):
 {history}
+
+DIRECT ACTION RULE: A "direct operational command" must satisfy ALL THREE of these:
+  (a) imperative form — NOT a question. Anything ending in "?" is NOT a command.
+      "Can we…", "Could you…", "Should we…", "What about…", "How can we fix…" → NOT commands.
+  (b) names a specific product or campaign by exact name (e.g. "Sony Headphones", "Google Shopping").
+  (c) specifies a concrete parameter — a number, percentage, duration, or "pause"/"resume".
+
+If and ONLY if all three are met, set ALL needs_* to False (the action_planner will execute it).
+
+Examples that ARE direct commands → all needs_* = False:
+  "restock Samsung TV by 20 units"
+  "apply 15% discount on Sony Headphones for 72 hours"
+  "pause Google Shopping campaign"
+  "resume Facebook Summer Sale"
+
+Examples that are NOT commands → route to agents normally:
+  "can we do some actions on it?"            (vague question — follow-up to prior analysis)
+  "what should we do about overstock?"       (asking for advice, not commanding)
+  "should we discount anything?"             (question, no specific product)
+  "how do we fix this?"                      (question, no specific entity)
+  "any actions we can take?"                 (question, no specific entity)
+
+For vague follow-ups that reference prior analysis ("it", "this", "that"), inherit the
+domains and target_date from the previous turn's context — re-run the relevant agents so
+the action_planner has fresh data to recommend against.
 
 For broad questions like "why did sales drop?" or "what happened yesterday?"
 activate ALL agents since a full cross-domain analysis is needed.
@@ -74,6 +105,7 @@ def planner_node(state: OpsState) -> OpsState:
             yesterday              = yesterday.isoformat(),
             last_week              = last_week.isoformat(),
             same_weekday_last_week = same_weekday.isoformat(),
+            previous_target_date   = state.get("target_date") or "none (first question in conversation)",
             question               = state["user_question"],
         )
     )

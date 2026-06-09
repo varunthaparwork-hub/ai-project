@@ -20,6 +20,7 @@ export async function analyze(
 
 export type StreamEvent =
   | { type: "node"; name: string; label: string; icon: string; preview: string }
+  | { type: "token"; content: string }
   | { type: "done"; final: string; structured_output: AnalyzeResponse["structured_output"]; proposed_actions: AnalyzeResponse["proposed_actions"]; thread_id: string; history: AnalyzeResponse["history"] }
   | { type: "error"; message: string };
 

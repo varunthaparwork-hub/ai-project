@@ -70,31 +70,37 @@ export default function AnalysisCard({
         </section>
       )}
 
-      {/* Historical References */}
-      {data.historical_references.length > 0 && (
-        <section>
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">
-            Historical References
-          </h3>
-          <ul className="space-y-2">
-            {data.historical_references.map((h, i) => (
-              <li
-                key={i}
-                className="bg-purple-950 border border-purple-800 rounded-lg p-3"
-              >
-                <div className="flex justify-between">
-                  <span className="text-xs font-semibold text-purple-300">{h.incident_date}</span>
-                  <span className="text-xs text-purple-500">
-                    similarity: {(h.similarity_score * 100).toFixed(0)}%
-                  </span>
-                </div>
-                <p className="text-sm text-purple-100 mt-1">{h.description}</p>
-                <p className="text-xs text-purple-400 mt-1">What worked: {h.what_worked}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* Historical References — only show if similarity >= 0.70 */}
+      {(() => {
+        const relevant = data.historical_references.filter(
+          (h) => h.similarity_score >= 0.70
+        );
+        if (relevant.length === 0) return null;
+        return (
+          <section>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">
+              Historical References
+            </h3>
+            <ul className="space-y-2">
+              {relevant.map((h, i) => (
+                <li
+                  key={i}
+                  className="bg-purple-950 border border-purple-800 rounded-lg p-3"
+                >
+                  <div className="flex justify-between">
+                    <span className="text-xs font-semibold text-purple-300">{h.incident_date}</span>
+                    <span className="text-xs text-purple-500">
+                      similarity: {(h.similarity_score * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <p className="text-sm text-purple-100 mt-1">{h.description}</p>
+                  <p className="text-xs text-purple-400 mt-1">What worked: {h.what_worked}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })()}
 
       {/* Full markdown */}
       <details className="text-sm">

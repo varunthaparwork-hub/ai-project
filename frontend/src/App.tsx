@@ -33,13 +33,16 @@ export default function App() {
   const [messages, setMessages]             = useState<ConvMessage[]>([]);
   const [latestActions, setLatestActions]   = useState<{ threadId: string; actions: ProposedAction[] } | null>(null);
   const [execReport, setExecReport]         = useState<string | null>(null);
-  const [error, setError]                   = useState<string | null>(null);  const [loadingChat, setLoadingChat]   = useState(false);  const cancelRef = useRef<(() => void) | null>(null);
+  const [error, setError]                   = useState<string | null>(null);
+  const [loadingChat, setLoadingChat]       = useState(false);
+  const [streamingDraft, setStreamingDraft] = useState("");
+  const cancelRef = useRef<(() => void) | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll to bottom when content changes
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, nodes.length]);
+  }, [messages.length, nodes.length, streamingDraft]);
 
   // ── New chat ──────────────────────────────────────────────────────────────
   const newChat = () => {
@@ -101,6 +104,7 @@ export default function App() {
     setLatestActions(null);
     setStreaming(true);
     setNodes([]);
+    setStreamingDraft("");
     // Append user bubble immediately
     setMessages((prev) => [...prev, { role: "user" as const, content: q }]);
 
@@ -110,6 +114,12 @@ export default function App() {
           ...prev.map((n) => ({ ...n, status: "done" as const })),
           { name: e.name, label: e.label, icon: e.icon, preview: e.preview, status: "running" as const },
         ]);
+      } else if (e.type === "token") {
+        // Live synthesis text — appears character-by-character below the
+        // pipeline progress until the 'done' event swaps it for the final
+        // structured AnalysisCard. Critic revisions also stream into the
+        // same buffer; we reset between revisions so users see the latest pass.
+        setStreamingDraft((prev) => prev + e.content);
       } else if (e.type === "done") {
         setNodes((prev) => prev.map((n) => ({ ...n, status: "done" as const })));
         setMessages((prev) => [
@@ -126,11 +136,13 @@ export default function App() {
           setLatestActions({ threadId: e.thread_id, actions: e.proposed_actions });
         }
         setStreaming(false);
+        setStreamingDraft("");
         setTimeout(() => setNodes([]), 1500);
         setRefreshChats((n) => n + 1);   // trigger sidebar refresh
       } else if (e.type === "error") {
         setError(e.message);
         setStreaming(false);
+        setStreamingDraft("");
         setNodes((prev) => prev.map((n) => ({ ...n, status: "done" as const })));
         setTimeout(() => setNodes([]), 1500);
       }
@@ -140,6 +152,7 @@ export default function App() {
   const cancel = () => {
     cancelRef.current?.();
     setStreaming(false);
+    setStreamingDraft("");
     setNodes([]);
   };
 
@@ -284,6 +297,16 @@ export default function App() {
                 <div className="p-3">
                   <PipelineProgress nodes={nodes} />
                 </div>
+              </div>
+            )}
+
+            {/* Live synthesis stream — shown while tokens are arriving but
+                before the structured 'done' event swaps in the AnalysisCard. */}
+            {streaming && streamingDraft && (
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-5
+                text-sm text-gray-300 leading-relaxed">
+                <ReactMarkdown>{streamingDraft}</ReactMarkdown>
+                <span className="inline-block w-1.5 h-4 ml-0.5 bg-blue-400/80 align-middle animate-pulse" />
               </div>
             )}
 

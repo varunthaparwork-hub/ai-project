@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python.exe -m uvicorn api.main:app --port 8765 --log-level warning)"
+    ]
+  }
+}

@@ -55,14 +55,65 @@ def inventory_node(state: OpsState) -> OpsState:
             + state["sales_analysis"][:600]
         )
 
-    question = (
-        f"Check all inventory levels. Identify out-of-stock and low stock products. "
-        f"Assess impact on sales for {state['target_date']}. "
-        f"Original user question: {state['user_question']}"
-        f"{sales_context}"
-    )
+    # Determine whether this is a HISTORICAL question (past date) or a CURRENT inventory check.
+    # Historical questions must use get_stock_status_on_date — not get_all_inventory.
+    # get_all_inventory only shows today's stock; get_stock_status_on_date shows what was
+    # actually in/out of stock on the specific date being investigated.
+    from datetime import date as _date
+    target = state.get("target_date") or ""
+    user_q  = state.get("user_question", "").lower()
+    is_historical = False
+    try:
+        is_historical = bool(target) and _date.fromisoformat(target) < _date.today()
+    except ValueError:
+        pass
 
-    print("\n[INVENTORY] Running...")
+    historical_keywords = ("stockout", "cause", "did", "why", "drop", "revenue", "june 1", "what happened")
+    looks_like_stockout_question = any(kw in user_q for kw in historical_keywords)
+
+    # DIRECT ACTION MODE — user is issuing a command, not asking for analysis.
+    # e.g. "restock samsung tv by 20 units" — no need to run deep inventory analysis.
+    # Just confirm the current stock level of the named product so the action planner
+    # has the data it needs; skip the full overstock/stockout report that would confuse it.
+    direct_action_keywords = ("restock", "apply discount", "add stock", "add units", "order more")
+    looks_like_direct_command = any(kw in user_q for kw in direct_action_keywords)
+
+    if looks_like_direct_command:
+        # Extract the product if mentioned (agent will figure it out from the question)
+        question = (
+            f"The user has issued a direct inventory action command. "
+            f"Use get_all_inventory() to retrieve current stock levels, then confirm "
+            f"the current stock of any products mentioned in the request. "
+            f"Do NOT produce an overstock/understock analysis — just report current stock "
+            f"of the relevant product(s) so the action can be executed. "
+            f"User command: {state['user_question']}"
+            f"{sales_context}"
+        )
+        mode = "direct-command"
+    elif is_historical and looks_like_stockout_question:
+        # HISTORICAL MODE — check what was actually in/out of stock on that specific past date
+        question = (
+            f"Use get_stock_status_on_date('{target}') to check which products were "
+            f"out-of-stock or low-stock on {target}. "
+            f"This is a historical investigation — do NOT call get_all_inventory or "
+            f"get_overstocked_products as those show current stock, not {target} stock. "
+            f"Confirm whether stockouts on {target} caused lost revenue and which products were affected. "
+            f"Original user question: {state['user_question']}"
+            f"{sales_context}"
+        )
+        mode = "historical:" + target
+    else:
+        # CURRENT MODE — check today's stock levels for overstock / stockout / low stock
+        question = (
+            f"Check current inventory levels. Identify any out-of-stock, low-stock, "
+            f"or overstocked products right now. "
+            f"Assess how current stock levels may affect upcoming sales. "
+            f"Original user question: {state['user_question']}"
+            f"{sales_context}"
+        )
+        mode = "current"
+
+    print(f"\n[INVENTORY] Running... (mode={mode})")
     analysis = run_inventory_agent(question)
     return {**state, "inventory_analysis": analysis}
 

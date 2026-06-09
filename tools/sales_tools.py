@@ -94,6 +94,70 @@ def get_regional_sales(date: str) -> dict:
 
 
 @tool
+def get_sales_anomaly(date: str, lookback_days: int = 14) -> dict:
+    """
+    Determines whether a date's revenue is anomalous compared to recent history.
+    Computes the rolling mean and standard deviation of daily revenue across the
+    `lookback_days` days preceding `date`, then expresses the target day as a
+    z-score: how many standard deviations it sits from the baseline.
+
+    Heuristic interpretation:
+      |z| >= 2.0  → strong anomaly (likely a real incident)
+      |z| >= 1.0  → mild anomaly (worth checking)
+      |z|  < 1.0  → within normal variation
+
+    Returns an `insufficient_history` flag when fewer than 3 prior days exist —
+    callers should fall back to compare_sales in that case.
+    Date must be in YYYY-MM-DD format.
+    """
+    target = fetchone_sync("SELECT revenue FROM sales_daily WHERE date = $1", date)
+    if not target:
+        return {"error": f"No sales data for {date}"}
+
+    history = fetchall_sync(
+        "SELECT date, revenue FROM sales_daily "
+        "WHERE date < $1 ORDER BY date DESC LIMIT $2",
+        date, lookback_days,
+    )
+    if len(history) < 3:
+        return {
+            "date": date,
+            "target_revenue": float(target["revenue"]),
+            "insufficient_history": True,
+            "history_days": len(history),
+            "message": "Need at least 3 prior days for a baseline; use compare_sales instead.",
+        }
+
+    revenues = [float(r["revenue"]) for r in history]
+    mean = sum(revenues) / len(revenues)
+    variance = sum((r - mean) ** 2 for r in revenues) / len(revenues)
+    stdev = variance ** 0.5
+
+    target_rev = float(target["revenue"])
+    z_score = round((target_rev - mean) / stdev, 2) if stdev else 0.0
+    pct_vs_baseline = round(((target_rev - mean) / mean) * 100, 1) if mean else 0.0
+
+    if abs(z_score) >= 2.0:
+        verdict = "strong_anomaly"
+    elif abs(z_score) >= 1.0:
+        verdict = "mild_anomaly"
+    else:
+        verdict = "normal"
+
+    return {
+        "date":             date,
+        "target_revenue":   target_rev,
+        "baseline_mean":    round(mean, 2),
+        "baseline_stdev":   round(stdev, 2),
+        "lookback_days":    len(history),
+        "z_score":          z_score,
+        "pct_vs_baseline":  pct_vs_baseline,
+        "verdict":          verdict,
+        "is_drop":          target_rev < mean,
+    }
+
+
+@tool
 def get_sales_trend(start_date: str, end_date: str) -> dict:
     """
     Returns daily revenue and orders for a date range to identify trends.

@@ -14,7 +14,7 @@
 
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
-from agents.base import llm
+from agents.base import llm_fast as llm  # critic grades a short draft — cheaper tier is sufficient
 from graph.state import OpsState
 
 
@@ -62,6 +62,17 @@ def critic_node(state: OpsState) -> OpsState:
     If approved  → copies draft to final_answer, sets needs_revision=False
     If rejected  → sets needs_revision=True with feedback for synthesis to fix
     """
+    # Auto-approve direct action commands — no analytical review needed
+    draft = state.get("synthesis_draft", "")
+    if "Direct operational command received" in draft:
+        print("\n[CRITIC] Direct command — auto-approving, skipping LLM review.")
+        return {
+            **state,
+            "needs_revision":  False,
+            "critic_feedback": "",
+            "final_answer":    draft,
+        }
+
     print("\n[CRITIC] Evaluating synthesis draft...")
 
     structured_llm = llm.with_structured_output(CriticDecision, method="function_calling")
