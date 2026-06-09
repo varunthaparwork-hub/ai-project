@@ -47,10 +47,19 @@ def inventory_node(state: OpsState) -> OpsState:
         print("[INVENTORY] Skipped.")
         return state
 
+    # Pass sales findings so inventory can confirm which stockouts caused lost revenue
+    sales_context = ""
+    if state.get("sales_analysis"):
+        sales_context = (
+            "\n\nSALES AGENT FINDINGS (cross-reference these with your stock data):\n"
+            + state["sales_analysis"][:600]
+        )
+
     question = (
         f"Check all inventory levels. Identify out-of-stock and low stock products. "
         f"Assess impact on sales for {state['target_date']}. "
         f"Original user question: {state['user_question']}"
+        f"{sales_context}"
     )
 
     print("\n[INVENTORY] Running...")
@@ -63,11 +72,21 @@ def marketing_node(state: OpsState) -> OpsState:
         print("[MARKETING] Skipped.")
         return state
 
+    # Provide prior findings so marketing can correlate campaign drops with revenue/stock issues
+    prior_context = ""
+    if state.get("sales_analysis"):
+        prior_context += f"\n\nSALES FINDINGS:\n{state['sales_analysis'][:400]}"
+    if state.get("inventory_analysis"):
+        prior_context += f"\n\nINVENTORY FINDINGS:\n{state['inventory_analysis'][:400]}"
+    if prior_context:
+        prior_context = "\n\nPRIOR AGENT FINDINGS (use to guide your campaign analysis):" + prior_context
+
     question = (
         f"Analyze all campaigns on {state['target_date']} "
         f"compared to {state['comparison_date']}. "
         f"Identify paused or underperforming campaigns. "
         f"Original user question: {state['user_question']}"
+        f"{prior_context}"
     )
 
     print("\n[MARKETING] Running...")
@@ -80,10 +99,19 @@ def support_node(state: OpsState) -> OpsState:
         print("[SUPPORT] Skipped.")
         return state
 
+    # Provide full cross-domain context so support can confirm if complaints match other signals
+    prior_context = ""
+    for label, key in [("SALES", "sales_analysis"), ("INVENTORY", "inventory_analysis"), ("MARKETING", "marketing_analysis")]:
+        if state.get(key):
+            prior_context += f"\n\n{label} FINDINGS:\n{state[key][:300]}"
+    if prior_context:
+        prior_context = "\n\nPRIOR AGENT FINDINGS (check if complaints correlate with these):" + prior_context
+
     question = (
         f"Analyze customer support tickets and complaints for {state['target_date']}. "
         f"Compare with {state['comparison_date']} if possible. "
         f"Original user question: {state['user_question']}"
+        f"{prior_context}"
     )
 
     print("\n[SUPPORT] Running...")

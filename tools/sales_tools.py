@@ -91,3 +91,45 @@ def get_regional_sales(date: str) -> dict:
         "regions": {r["region"]: {"revenue": float(r["revenue"]), "orders": r["orders"]}
                     for r in rows},
     }
+
+
+@tool
+def get_sales_trend(start_date: str, end_date: str) -> dict:
+    """
+    Returns daily revenue and orders for a date range to identify trends.
+    Use this for week-over-week questions, sustained drops, or to check whether
+    today's issue is isolated or part of a longer pattern.
+    Both dates must be in YYYY-MM-DD format.
+    """
+    rows = fetchall_sync(
+        "SELECT date, revenue, orders FROM sales_daily "
+        "WHERE date BETWEEN $1 AND $2 ORDER BY date ASC",
+        start_date, end_date,
+    )
+    if not rows:
+        return {"error": f"No sales data found between {start_date} and {end_date}"}
+
+    revenues = [float(r["revenue"]) for r in rows]
+    avg_rev  = round(sum(revenues) / len(revenues), 2)
+    peak_row   = max(rows, key=lambda r: float(r["revenue"]))
+    lowest_row = min(rows, key=lambda r: float(r["revenue"]))
+
+    return {
+        "start_date":            start_date,
+        "end_date":              end_date,
+        "days_analyzed":         len(rows),
+        "average_daily_revenue": avg_rev,
+        "peak_day":              str(peak_row["date"]),
+        "peak_revenue":          float(peak_row["revenue"]),
+        "lowest_day":            str(lowest_row["date"]),
+        "lowest_revenue":        float(lowest_row["revenue"]),
+        "trend": (
+            "declining" if revenues[-1] < revenues[0]
+            else "growing" if revenues[-1] > revenues[0]
+            else "flat"
+        ),
+        "daily_data": [
+            {"date": str(r["date"]), "revenue": float(r["revenue"]), "orders": int(r["orders"])}
+            for r in rows
+        ],
+    }

@@ -33,6 +33,12 @@ and report every product where is_overstocked is True, sorted by overstock_ratio
 Always provide: product name, current stock, reorder point, overstock_ratio,
 estimated financial impact of holding excess inventory, and recommended action
 (discount, return-to-supplier, or demand stimulation).
+
+If sales agent findings are provided in the question, cross-reference them:
+confirm whether products with zero sales also have zero stock (stockout = lost revenue).
+
+DATA GAPS: If a tool returns an error, state it explicitly in your report.
+Never assume or estimate stock levels — only report what the tools return.
 """
 
 

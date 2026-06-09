@@ -25,6 +25,14 @@ that may have reduced traffic or conversions.
 Use the available tools to gather data, then provide a clear summary
 of which campaigns were active vs paused, spend and conversion comparisons
 to the previous period, and which channel caused the most impact.
+
+If prior sales or inventory findings are provided in the question, correlate:
+for example, if a high-revenue product had zero sales, check whether its
+advertising campaign was also paused or had a significant spend drop.
+
+DATA GAPS: If a tool returns {{"error": "No data found"}} for a date, check the
+previous date using the same tool. If still no data, state clearly that no campaign
+data was available. Do not invent campaign statuses or spend figures.
 """
 
 

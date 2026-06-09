@@ -11,6 +11,28 @@ from agents.base import llm
 from graph.state import OpsState
 
 
+def _get_product_names() -> str:
+    """Fetch live product names from DB so the action planner always uses current data."""
+    try:
+        from data.db import fetchall_sync
+        rows = fetchall_sync("SELECT DISTINCT product_name FROM inventory ORDER BY product_name")
+        names = [r["product_name"] for r in rows]
+        return ", ".join(names) if names else "Nike Running Shoes, Sony Headphones, Apple Watch, Samsung TV, Levi Jeans"
+    except Exception:
+        return "Nike Running Shoes, Sony Headphones, Apple Watch, Samsung TV, Levi Jeans"
+
+
+def _get_campaign_names() -> str:
+    """Fetch live campaign names from DB so the action planner always uses current data."""
+    try:
+        from data.db import fetchall_sync
+        rows = fetchall_sync("SELECT DISTINCT name FROM campaigns ORDER BY name")
+        names = [r["name"] for r in rows]
+        return ", ".join(names) if names else "Facebook Summer Sale, Google Shopping, Instagram Influencer"
+    except Exception:
+        return "Facebook Summer Sale, Google Shopping, Instagram Influencer"
+
+
 class ProposedAction(BaseModel):
     # One single proposed action with everything the executor needs to run it
     action_id: int = Field(description="Sequential number starting from 1")
@@ -36,11 +58,11 @@ AVAILABLE TOOLS (only use these exact tool names):
 - pause_campaign(campaign_name: str, reason: str)
 - create_support_ticket(issue_type: str, description: str, priority: str)
 
-AVAILABLE PRODUCT NAMES (use exactly as shown):
-Nike Running Shoes, Sony Headphones, Apple Watch, Samsung TV, Levi Jeans
+AVAILABLE PRODUCT NAMES (use exactly as shown — fetched live from database):
+{product_names}
 
-AVAILABLE CAMPAIGN NAMES (use exactly as shown):
-Facebook Summer Sale, Google Shopping, Instagram Influencer
+AVAILABLE CAMPAIGN NAMES (use exactly as shown — fetched live from database):
+{campaign_names}
 
 RULES:
 - Only propose actions directly supported by evidence in the analysis
@@ -72,6 +94,8 @@ def action_planner_node(state: OpsState) -> OpsState:
         ACTION_PLANNER_PROMPT.format(
             analysis=analysis,
             user_question=user_question,
+            product_names=_get_product_names(),
+            campaign_names=_get_campaign_names(),
         )
     )
 

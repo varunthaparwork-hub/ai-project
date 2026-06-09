@@ -33,6 +33,9 @@ Yesterday was {yesterday}.
 One week ago was {last_week}.
 Same weekday last week was {same_weekday_last_week}.
 
+Previous conversation (last 3 turns — use this to understand follow-up questions like "why?" or "what about inventory?"):
+{history}
+
 For broad questions like "why did sales drop?" or "what happened yesterday?"
 activate ALL agents since a full cross-domain analysis is needed.
 For specific questions, only activate the relevant agents.

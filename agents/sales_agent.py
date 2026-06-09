@@ -25,6 +25,7 @@ from tools.sales_tools import (
     compare_sales,           # calculates % change between two dates
     get_product_performance, # shows per-product units and revenue
     get_regional_sales,      # breaks down sales by region
+    get_sales_trend,         # returns daily trend over a date range
 )
 
 # Only sales tools are given to this agent.
@@ -35,6 +36,7 @@ SALES_TOOLS = [
     compare_sales,
     get_product_performance,
     get_regional_sales,
+    get_sales_trend,
 ]
 
 # System prompt defines the agent's role and what to include in its response.
@@ -45,6 +47,13 @@ Your job is to analyze sales data and provide clear, factual insights.
 Use the available tools to gather data, then provide a structured analysis
 with revenue figures, order counts, comparison to previous period,
 which products underperformed, and whether the drop is significant.
+
+Use get_sales_trend when asked about multi-day patterns, week-over-week questions,
+or to determine if today's drop is isolated or part of a longer sustained decline.
+
+DATA GAPS: If a tool returns {{"error": "No data found"}}, try an adjacent date
+(one day earlier or later). If still no data, explicitly state which dates had
+no data and continue with what is available. Never fabricate numbers.
 """
 
 

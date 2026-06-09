@@ -23,6 +23,13 @@ data to identify experience issues that may have hurt sales or reputation.
 Use the available tools to gather data, then provide a clear summary
 of ticket volume vs normal, top complaint categories, CSAT score,
 and whether any complaints correlate with sales issues.
+
+If prior findings from other agents are provided in the question, check alignment:
+for example, if inventory found a stockout, verify whether "out of stock" complaints
+spiked on the same date — this confirms the stockout had customer-visible impact.
+
+DATA GAPS: If a tool returns no data for a date, note this explicitly in your report.
+Do not assume complaint volumes — only report confirmed numbers from tool results.
 """
 
 
