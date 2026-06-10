@@ -94,10 +94,14 @@ def critic_node(state: OpsState) -> OpsState:
 
     current_revision_count = state.get("revision_count", 0)
 
-    # If already revised once, force-approve to prevent infinite loop
-    # and guarantee final_answer is always set
-    if decision.needs_revision and current_revision_count < 1:
-        print("[CRITIC] Sending back for revision...")
+    # Confidence threshold: if confidence < 0.70 and we haven't hit revision limit,
+    # always send for revision regardless of needs_revision flag
+    low_confidence = decision.confidence_score < 0.70
+    should_revise = (decision.needs_revision or low_confidence) and current_revision_count < 2
+
+    if should_revise:
+        reason = "low confidence" if low_confidence else "identified issues"
+        print(f"[CRITIC] Sending back for revision (reason: {reason}, confidence: {decision.confidence_score:.2f})...")
         return {
             **state,
             "needs_revision": True,
@@ -106,10 +110,12 @@ def critic_node(state: OpsState) -> OpsState:
         }
 
     # Draft approved (or max revisions reached) — promote to final answer
-    if current_revision_count >= 1:
-        print("[CRITIC] Max revisions reached — accepting revised draft.")
+    if current_revision_count >= 2:
+        print(f"[CRITIC] Max revisions (2) reached — accepting revised draft (confidence: {decision.confidence_score:.2f}).")
+    elif current_revision_count == 1:
+        print(f"[CRITIC] Revised draft approved (confidence: {decision.confidence_score:.2f}).")
     else:
-        print("[CRITIC] Draft approved.")
+        print(f"[CRITIC] Draft approved (confidence: {decision.confidence_score:.2f}).")
     return {
         **state,
         "needs_revision": False,

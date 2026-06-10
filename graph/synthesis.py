@@ -11,19 +11,36 @@ SYNTHESIS_PROMPT = """You are the chief Operations AI for an e-commerce store.
 You have received analysis reports from multiple specialist agents.
 Your job is to synthesize them into ONE clear executive summary.
 
+CRITICAL CONSTRAINT: Every number, product name, and key finding you cite MUST be
+verbatim from the agent reports below. Do NOT invent, estimate, or extrapolate data.
+If a figure does not appear in the reports, do not mention it.
+If two reports contradict each other, flag the contradiction explicitly and choose
+the more conservative (lowest-impact) interpretation.
+
 Structure your response exactly as:
 
 ## Summary
-One paragraph explaining what happened overall.
+One paragraph explaining what happened overall. Only cite findings that appear in the reports.
 
 ## Root Causes
-Bullet list of confirmed causes, ranked by impact.
+Bullet list of confirmed causes, ranked by impact. Every cause must cite the domain and the
+specific evidence from the reports. Do NOT rank causes higher than the reports support.
+Format each cause as: "**[DOMAIN]** [Cause description] (Evidence: [exact quote from report])"
 
 ## Supporting Evidence
-Key data points from each domain that support your conclusions.
+Key data points from each domain that support your conclusions. Quote figures directly.
+If a domain says "Not analyzed", explicitly note that its findings are unavailable.
+Do NOT speculate about unanalyzed domains.
 
 ## Cross-Domain Correlations
 Explain how findings across domains connect (e.g., stock outage + campaign paused + complaints spike).
+ONLY claim correlations if the reports explicitly state them or if the logical connection is obvious
+(e.g., "Stockout reported AND zero sales reported" = obvious correlation). Do NOT infer hidden causation.
+
+## Contradictions and Gaps
+If different agents reported contradictory data (e.g., Sales says $1,000 in lost revenue but
+Inventory says no stockouts occurred), list them here and flag for manual review.
+Do NOT hide contradictions or pick one report's numbers arbitrarily.
 
 ## Historical Context
 If past incidents are provided below, reference them here.
@@ -31,7 +48,8 @@ Explain if this has happened before and what worked or didn't work.
 If no past incidents, write: No similar past incidents found.
 
 ## Recommended Actions
-Numbered list of specific actions with reasoning.
+Numbered list of specific actions with reasoning. Each action must be grounded in a root cause
+from the reports. Do NOT recommend actions that are not supported by the data.
 
 ---
 Reports from specialist agents:
@@ -119,7 +137,7 @@ def synthesis_node(state: OpsState) -> OpsState:
         )
         response = llm.invoke([HumanMessage(content=prompt)])
         return {**state , "synthesis_draft":response.content}
-    
+
     # Shortcut: if no agents ran this is a direct action command, not an analysis request.
     # Return a minimal acknowledged draft instead of hallucinating from empty reports.
     all_skipped = not any([
@@ -135,6 +153,33 @@ def synthesis_node(state: OpsState) -> OpsState:
             f"## Root Causes\nN/A — this is a user-initiated operational command.\n\n"
             f"## Recommended Actions\n1. Execute as requested: {user_q}"
         )}
+
+    # SIMPLE QUERY DETECTION: If user is just asking for current status/data (not analysis),
+    # and only ONE agent ran, answer directly without the full synthesis framework
+    agent_count = sum([
+        bool(state.get("sales_analysis")),
+        bool(state.get("inventory_analysis")),
+        bool(state.get("marketing_analysis")),
+        bool(state.get("support_analysis")),
+    ])
+
+    user_q = state.get("user_question", "").lower()
+    is_simple_query = any(kw in user_q for kw in [
+        "current", "status", "what is", "how many", "inventory", "stock",
+        "how much", "list", "show", "get", "check", "what's", "what are"
+    ]) and "?" in user_q and "why" not in user_q and "how did" not in user_q
+
+    if is_simple_query and agent_count == 1:
+        print(f"\n[SYNTHESIS] Simple query detected — answering directly without full analysis framework.")
+        # Just return the agent's findings directly
+        if state.get("inventory_analysis"):
+            return {**state, "synthesis_draft": state["inventory_analysis"]}
+        elif state.get("sales_analysis"):
+            return {**state, "synthesis_draft": state["sales_analysis"]}
+        elif state.get("marketing_analysis"):
+            return {**state, "synthesis_draft": state["marketing_analysis"]}
+        elif state.get("support_analysis"):
+            return {**state, "synthesis_draft": state["support_analysis"]}
 
     # First pass - produce initial draft from agent reports
     print("\n[SYNTHESIS] Producing initial draft....")

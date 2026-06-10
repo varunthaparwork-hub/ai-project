@@ -21,16 +21,25 @@ def memory_node(state: OpsState) -> OpsState:
 
     # Build a rich search query from whatever agent analyses are available.
     # The more context we include, the better the semantic match.
+    # Prepend user question to anchor semantic search to user intent.
     query_parts = []
 
+    # Always include the user's original question first for intent anchoring
+    user_question = state.get("user_question", "")
+    if user_question:
+        query_parts.append(user_question.split("\n")[0])  # first line only, to stay focused
+
     if state.get("sales_analysis"):
-        query_parts.append(state["sales_analysis"][:300])  # first 300 chars is enough
+        query_parts.append(state["sales_analysis"][:600])  # increased from 300 to 600
 
     if state.get("inventory_analysis"):
-        query_parts.append(state["inventory_analysis"][:300])
+        query_parts.append(state["inventory_analysis"][:600])  # increased from 300 to 600
 
     if state.get("marketing_analysis"):
-        query_parts.append(state["marketing_analysis"][:300])
+        query_parts.append(state["marketing_analysis"][:600])  # increased from 300 to 600
+
+    if state.get("support_analysis"):
+        query_parts.append(state["support_analysis"][:600])  # also include support for completeness
 
     # If no agent ran yet (e.g. pure memory question), use the raw user question
     if not query_parts:

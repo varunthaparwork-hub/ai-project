@@ -19,8 +19,8 @@ class PlannerDecision(BaseModel):
     needs_inventory: bool = Field(description="Does this question require inventory analysis?")
     needs_marketing: bool = Field(description="Does this question require marketing/campaign analysis?")
     needs_support: bool = Field(description="Does this question require customer support analysis?")
-    target_date: str = Field(description="The primary date being analyzed in YYYY-MM-DD format. If the question is a follow-up that does not specify a new date (e.g. 'What about inventory?', 'Did stockouts cause it?', 'How can we fix it?'), use the previous_target_date provided in the prompt instead of today's date.")
-    comparison_date: str = Field(description="The comparison date in YYYY-MM-DD format. Infer from the question — usually the day before target_date or same weekday last week.")
+    target_date: str = Field(description="The primary date being analyzed. MUST be in strict YYYY-MM-DD format. Never return relative terms like 'yesterday' or 'last week'. If the question is a follow-up that does not specify a new date (e.g. 'What about inventory?', 'Did stockouts cause it?', 'How can we fix it?'), use the previous_target_date provided in the prompt instead of today's date. Return this field even if empty string — always a valid date string.")
+    comparison_date: str = Field(description="The comparison date in YYYY-MM-DD format. MUST be in strict YYYY-MM-DD format. Infer from the question — usually the day before target_date or same weekday last week. Return this field even if empty string — always a valid date string.")
 
 # Prompt is a template — dates are injected at runtime inside planner_node
 PLANNER_PROMPT = """You are the operations planning agent for an e-commerce store.
@@ -33,6 +33,17 @@ Yesterday was {yesterday}.
 One week ago was {last_week}.
 Same weekday last week was {same_weekday_last_week}.
 Previous analysis target date (from earlier in this conversation): {previous_target_date}
+
+TEMPORAL REFERENCE MAPPING (for vague time references):
+  - "recently" / "lately" / "this week" → target_date = {yesterday}, comparison_date = {last_week}
+  - "last few days" → target_date = {yesterday}, comparison_date = {yesterday} (3 days ago, but use yesterday for known baseline)
+  - "earlier today" → target_date = {today}, comparison_date = {yesterday}
+  - Explicit date like "June 1" → use that exact date regardless of today's date (parse as ISO if provided, else infer year as current year)
+  - No temporal reference in question → target_date = {previous_target_date} if available, else {today}
+
+DATE FORMAT RULE (CRITICAL): You MUST return target_date and comparison_date in strict YYYY-MM-DD format.
+Never return relative terms like "yesterday", "last week", "recently", or date names like "Monday".
+Always return absolute ISO format dates. If you cannot infer a date, return empty string "" (not a relative term).
 
 DATE RULE: If the current question does not explicitly mention a new date and is clearly a
 follow-up to the previous question (e.g. starts with "What about", "Did", "How about",
@@ -67,9 +78,26 @@ For vague follow-ups that reference prior analysis ("it", "this", "that"), inher
 domains and target_date from the previous turn's context — re-run the relevant agents so
 the action_planner has fresh data to recommend against.
 
-For broad questions like "why did sales drop?" or "what happened yesterday?"
-activate ALL agents since a full cross-domain analysis is needed.
-For specific questions, only activate the relevant agents.
+DEFAULT-TO-ALL RULE (CRITICAL): If the question matches ANY of these patterns,
+activate ALL FOUR agents (needs_sales=True, needs_inventory=True, needs_marketing=True, needs_support=True)
+regardless of specificity:
+  1. Broad diagnostic queries: "what happened", "any issues", "full diagnosis", "give me everything",
+     "what should we address", "overall situation", "complete picture", "comprehensive review"
+  2. Questions mentioning failure/drop: "why did", "why is", "caused", "dropped", "fell", "collapsed",
+     "crashed", "loss", "what went wrong"
+  3. Questions about multiple domains: "across", "both", "all", "everything", "correlat", "impact",
+     "relationship", "connect", "together"
+  4. Temporal scope questions: "what happened", "what's going on", "recently", "lately", "this week",
+     "any updates", "status check"
+  5. Open-ended diagnostic: "analyze", "review", "assess" (without specifying a single domain)
+
+For narrow, explicitly scoped questions that name one domain, only activate relevant agents:
+  - "inventory status" → needs_inventory only
+  - "sales for June" → needs_sales only
+  - "campaign performance" → needs_marketing only
+  - "customer complaints" → needs_support only
+
+Erring on the side of running more agents is better than missing critical context.
 
 User question: {question}"""
 
