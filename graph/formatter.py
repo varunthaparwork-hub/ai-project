@@ -136,6 +136,13 @@ Instructions:
     except Exception as e:
         print(f"[FORMATTER] ERROR: Structured output extraction failed ({type(e).__name__}: {e}). Retrying with simplified prompt...")
 
+        # Log formatter failure for observability
+        try:
+            from observability.tracker import tracker
+            tracker.log_formatter_error(exception=str(e), attempt="first_pass", retry_planned=True)
+        except Exception:
+            pass  # tracker may not be available in all contexts
+
         # RETRY ONCE with simplified prompt focusing on critical fields only
         simplified_prompt = f"""Extract ONLY the most critical fields from this analysis:
 - one_liner: single sentence, most important finding
@@ -162,22 +169,22 @@ If you cannot extract structured data, return empty lists for root_causes and re
             print(f"[FORMATTER] Retry succeeded. Severity={ops_response_retry.severity.value}, "
                   f"RootCauses={len(ops_response_retry.root_causes)}")
 
-            # Log to observability tracker
+            # Log retry success for observability
             try:
                 from observability.tracker import tracker
-                tracker.log_formatter_retry(exception=e, fallback_used=False)
+                tracker.log_formatter_error(exception=None, attempt="retry", fallback_used=False)
             except Exception:
-                pass  # tracker may not be available in all contexts
+                pass
 
             return {**state, "structured_output": ops_response_retry.model_dump(mode="json")}
 
         except Exception as retry_error:
             print(f"[FORMATTER] Retry also failed ({type(retry_error).__name__}). Using fallback with extracted summary.")
 
-            # Log to observability tracker
+            # Log retry failure for observability
             try:
                 from observability.tracker import tracker
-                tracker.log_formatter_retry(exception=retry_error, fallback_used=True)
+                tracker.log_formatter_error(exception=str(retry_error), attempt="retry", fallback_used=True)
             except Exception:
                 pass
 

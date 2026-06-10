@@ -26,8 +26,8 @@ async def get_pool() -> asyncpg.Pool:
     # Creating the connection pool if it doesn't exist
     if _pool is None:
 
-        # Creates a connection Pool that keeps at least 2 connections open and at max 10.
-        _pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
+        # Increased pool size: 10 concurrent connections to handle 4+ parallel agents + buffer
+        _pool = await asyncpg.create_pool(DATABASE_URL, min_size=10, max_size=20)
 
     return _pool # Return the pool
 
@@ -81,7 +81,7 @@ async def _get_sync_pool() -> asyncpg.Pool:
     """Creates/returns the pool that lives in _sync_loop. Never call from FastAPI."""
     global _sync_pool
     if _sync_pool is None:
-        _sync_pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
+        _sync_pool = await asyncpg.create_pool(DATABASE_URL, min_size=10, max_size=20)
     return _sync_pool
 
 
@@ -108,7 +108,7 @@ def fetchone_sync(query: str, *args) -> dict | None:
             row = await conn.fetchrow(query, *coerced)
             return dict(row) if row else None
 
-    return asyncio.run_coroutine_threadsafe(_run(), _get_sync_loop()).result(timeout=30)
+    return asyncio.run_coroutine_threadsafe(_run(), _get_sync_loop()).result(timeout=60)
 
 
 def fetchall_sync(query: str, *args) -> list[dict]:
@@ -120,7 +120,7 @@ def fetchall_sync(query: str, *args) -> list[dict]:
             rows = await conn.fetch(query, *coerced)
             return [dict(r) for r in rows]
 
-    return asyncio.run_coroutine_threadsafe(_run(), _get_sync_loop()).result(timeout=30)
+    return asyncio.run_coroutine_threadsafe(_run(), _get_sync_loop()).result(timeout=60)
 
 
 def execute_sync(query: str, *args) -> None:

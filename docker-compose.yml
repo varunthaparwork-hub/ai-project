@@ -19,6 +19,17 @@ services:
       timeout: 5s
       retries: 10
 
+  # ── Qdrant (local vector store) ─────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    container_name: ecommerce_qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
   # ── DB seed (runs once, exits) ──────────────────────────────────────────────
   seed:
     build: .
@@ -26,12 +37,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    env_file: .env
+      qdrant:
+        condition: service_started
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://postgres:thaparvarun1410@postgres:5432/ecommerce_brain
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ""
     command: python -m data.seed
     restart: "no"
-
 
   # ── FastAPI backend ─────────────────────────────────────────────────────────
   api:
@@ -41,14 +56,44 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      qdrant:
+        condition: service_started
       seed:
         condition: service_completed_successfully
-    env_file: .env
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://postgres:thaparvarun1410@postgres:5432/ecommerce_brain
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ""
     ports:
       - "8000:8000"
+    volumes:
+      - observability_data:/app/observability
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status==200 else 1)\""
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
+  # ── React frontend (nginx-served) ───────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: ecommerce_frontend
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "5173:80"
 
 volumes:
   postgres_data:
+  qdrant_data:
+  observability_data:

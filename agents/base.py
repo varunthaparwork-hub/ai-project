@@ -34,15 +34,14 @@ set_llm_cache(InMemoryCache())
 _STRONG_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4.1-mini-2025-04-14")
 _FAST_DEPLOYMENT   = os.getenv("AZURE_OPENAI_DEPLOYMENT_FAST", _STRONG_DEPLOYMENT)
 
-# Timeout/retry: the SSE stream is held open by the synthesis call, so a hung
-# request would stall the whole pipeline. Cap each LLM call at 60s and let
-# the SDK retry transient 429/5xx twice with backoff before surfacing the error.
+# Timeout/retry: synthesis calls may stream long responses, so cap at 120s.
+# Let the SDK retry transient 429/5xx twice with backoff before surfacing the error.
 _AZURE_COMMON = dict(
     api_key        = os.getenv("OPENAI_API_KEY"),
     api_version    = os.getenv("AZURE_OPENAI_API_VERSION", "2025-04-01-preview"),
     azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "https://ai-proxy.lab.epam.com"),
     temperature     = 0,   # deterministic — best for analysis and structured tasks
-    request_timeout = 60,  # seconds, applied per LLM call
+    request_timeout = 120,  # seconds, increased for complex synthesis queries
     max_retries     = 2,   # retry transient failures (429, 5xx) with backoff
 )
 

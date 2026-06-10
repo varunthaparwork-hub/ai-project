@@ -27,6 +27,21 @@ Bullet list of confirmed causes, ranked by impact. Every cause must cite the dom
 specific evidence from the reports. Do NOT rank causes higher than the reports support.
 Format each cause as: "**[DOMAIN]** [Cause description] (Evidence: [exact quote from report])"
 
+## SOURCE CITATION RULES (CRITICAL)
+For every root cause you list:
+1. Cite the exact domain that reported it (SALES / INVENTORY / MARKETING / SUPPORT)
+2. Include the exact quote or specific number from that domain's report
+3. If you must paraphrase, wrap it in [paraphrased:...] and cite the original quote
+4. If a finding appears in multiple domains, cite all of them
+5. If a cause cannot be traced to any report, DO NOT include it — flag it under Contradictions instead
+
+Example correct format:
+- **[SALES]** Revenue dropped 40% (Evidence: "Q2 revenue fell from $50K to $30K")
+
+Example WRONG format (DO NOT do this):
+- Revenue appears to be down (no domain, no numbers, no source)
+- It seems sales were affected (vague paraphrase without original quote)
+
 ## Supporting Evidence
 Key data points from each domain that support your conclusions. Quote figures directly.
 If a domain says "Not analyzed", explicitly note that its findings are unavailable.
@@ -102,6 +117,15 @@ PAST SIMILAR INCIDENTS FROM MEMORY:
 
 Rewrite the analysis using ONLY data from the agent reports above.
 Every root cause and number must be traceable to those reports.
+
+REVISION CITATION RULES (CRITICAL):
+For every root cause you revise:
+1. Cite the exact domain (SALES / INVENTORY / MARKETING / SUPPORT)
+2. Include the exact quote or specific number from that domain's report
+3. Do NOT add new claims without evidence from the reports
+4. If the critic flagged a claim as unsourced, remove it or cite a specific report line
+5. If multiple domains support a cause, cite all of them
+
 ## Summary
 ## Root Causes
 ## Supporting Evidence

@@ -34,21 +34,28 @@ One week ago was {last_week}.
 Same weekday last week was {same_weekday_last_week}.
 Previous analysis target date (from earlier in this conversation): {previous_target_date}
 
-TEMPORAL REFERENCE MAPPING (for vague time references):
-  - "recently" / "lately" / "this week" → target_date = {yesterday}, comparison_date = {last_week}
-  - "last few days" → target_date = {yesterday}, comparison_date = {yesterday} (3 days ago, but use yesterday for known baseline)
-  - "earlier today" → target_date = {today}, comparison_date = {yesterday}
-  - Explicit date like "June 1" → use that exact date regardless of today's date (parse as ISO if provided, else infer year as current year)
+TEMPORAL REFERENCE MAPPING (for vague time references — CRITICAL):
+  - "recently" / "lately" → target_date = {yesterday}, comparison_date = {last_week}
+  - "this week" → target_date = {yesterday}, comparison_date = {last_week}
+  - "last few days" / "past few days" → target_date = {yesterday}, comparison_date = 3 days before {yesterday}
+  - "earlier today" / "today" → target_date = {today}, comparison_date = {yesterday}
+  - "yesterday" / "last day" → target_date = {yesterday}, comparison_date = {last_week}
+  - "last week" → target_date = {last_week}, comparison_date = 2 weeks before {last_week}
+  - Explicit date like "June 1" or "2026-05-15" → use that exact date regardless of today's date
   - No temporal reference in question → target_date = {previous_target_date} if available, else {today}
 
-DATE FORMAT RULE (CRITICAL): You MUST return target_date and comparison_date in strict YYYY-MM-DD format.
-Never return relative terms like "yesterday", "last week", "recently", or date names like "Monday".
-Always return absolute ISO format dates. If you cannot infer a date, return empty string "" (not a relative term).
+VALIDATION RULES (REQUIRED):
+  1. target_date and comparison_date MUST be in strict YYYY-MM-DD format (ISO 8601)
+  2. Never return vague terms like "yesterday", "last week", "recently", "Monday"
+  3. If you cannot confidently infer a date from the question, return "" (empty string)
+  4. target_date must never be in the future (max is today)
+  5. comparison_date should typically be before target_date for historical comparison
 
-DATE RULE: If the current question does not explicitly mention a new date and is clearly a
-follow-up to the previous question (e.g. starts with "What about", "Did", "How about",
-"Can you also", "And the", or is very short), set target_date = previous_target_date.
-Only use today's date if the question is explicitly about right now with no prior context.
+FOLLOW-UP DETECTION (CRITICAL):
+  If the question is clearly a follow-up (starts with "What about", "Did", "How about",
+  "Can you also", "And the", "Why did", or is very short like "More details?" or "Why?"),
+  and does NOT explicitly mention a new date, set target_date = {previous_target_date}.
+  This ensures "What about inventory?" uses the same target_date as the prior question.
 
 Previous conversation (last 3 turns — use this to understand follow-up questions like "why?" or "what about inventory?"):
 {history}
