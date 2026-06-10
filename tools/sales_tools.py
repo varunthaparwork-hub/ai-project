@@ -74,6 +74,63 @@ def get_product_performance(date: str) -> dict:
 
 
 @tool
+def compare_product_performance(date1: str, date2: str) -> dict:
+    """
+    Compares per-product performance between two dates.
+    Returns side-by-side units sold and revenue for each product,
+    plus absolute and percentage change. Use this to identify which
+    specific products drove a revenue drop or improvement.
+    Date must be in YYYY-MM-DD format.
+    """
+    d1_rows = fetchall_sync(
+        "SELECT product_name, units_sold, revenue FROM product_sales WHERE date = $1",
+        date1,
+    )
+    d2_rows = fetchall_sync(
+        "SELECT product_name, units_sold, revenue FROM product_sales WHERE date = $1",
+        date2,
+    )
+
+    if not d1_rows and not d2_rows:
+        return {"error": f"No product data found for {date1} or {date2}"}
+
+    d2_map = {r["product_name"]: r for r in d2_rows}
+    comparisons = []
+
+    for d1_row in d1_rows:
+        product = d1_row["product_name"]
+        d1_units = int(d1_row["units_sold"])
+        d1_revenue = float(d1_row["revenue"])
+
+        d2_row = d2_map.get(product)
+        d2_units = int(d2_row["units_sold"]) if d2_row else 0
+        d2_revenue = float(d2_row["revenue"]) if d2_row else 0
+
+        units_change = d1_units - d2_units
+        revenue_change = d1_revenue - d2_revenue
+        units_pct = round((units_change / d2_units) * 100, 1) if d2_units else 0
+        revenue_pct = round((revenue_change / d2_revenue) * 100, 1) if d2_revenue else 0
+
+        comparisons.append({
+            "product": product,
+            f"units_{date1}": d1_units,
+            f"units_{date2}": d2_units,
+            "units_change": units_change,
+            "units_pct_change": units_pct,
+            f"revenue_{date1}": round(d1_revenue, 2),
+            f"revenue_{date2}": round(d2_revenue, 2),
+            "revenue_change": round(revenue_change, 2),
+            "revenue_pct_change": revenue_pct,
+        })
+
+    return {
+        "date1": date1,
+        "date2": date2,
+        "products": sorted(comparisons, key=lambda p: abs(p["revenue_change"]), reverse=True),
+    }
+
+
+@tool
 def get_regional_sales(date: str) -> dict:
     """
     Returns sales broken down by region (North, South, East, West)

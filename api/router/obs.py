@@ -1,4 +1,5 @@
 import json
+import math
 from pathlib import Path
 from collections import Counter
 from fastapi import APIRouter
@@ -25,10 +26,13 @@ def get_observability():
     total = len(runs)
     latencies = sorted(r["latency_ms"] for r in runs)
 
+    # Correct p95 calculation: ceil(total * 0.95) - 1 gives the 95th percentile index
+    p95_idx = min(math.ceil(total * 0.95) - 1, total - 1)
+
     return ObsStatsResponse(
         total_runs=total,
         avg_latency_ms=round(sum(latencies) / total, 1),
-        p95_latency_ms=float(latencies[int(total * 0.95)]),
+        p95_latency_ms=float(latencies[p95_idx]),
         avg_revisions=round(sum(r.get("revision_count", 0) for r in runs) / total, 2),
         memory_hit_rate=round(sum(1 for r in runs if r.get("memory_hits", 0) > 0) / total * 100, 1),
         exec_rate=round(sum(1 for r in runs if r.get("had_execution")) / total * 100, 1),

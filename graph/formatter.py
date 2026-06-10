@@ -76,7 +76,7 @@ def formatter_node(state: OpsState) -> OpsState:
         exec_text = "Execution was skipped (user rejected all actions or no actions proposed)."
 
     # ── Build LLM extraction prompt ───────────────────────────────
-    prompt = f"""You are a data extraction assistant. 
+    prompt = f"""You are a data extraction assistant.
 Read the operations analysis below and extract ALL fields into the required JSON schema.
 Do not invent data — only use what is present in the analysis text.
 
@@ -97,10 +97,10 @@ ORIGINAL USER QUESTION: {state["user_question"]}
 
 Instructions:
 - one_liner: single sentence capturing the single most important finding
-- severity: one of critical / high / medium / low
+- severity: one of critical / high / medium / low (use SEVERITY CLASSIFICATION below)
 - root_causes: list each root cause with rank (1=highest impact), domain, evidence
-- recommended_actions: extract every numbered action; set is_executable=true only for 
-  actions that mention restocking, applying a discount, resuming/pausing a campaign, 
+- recommended_actions: extract every numbered action; set is_executable=true only for
+  actions that mention restocking, applying a discount, resuming/pausing a campaign,
   or creating a support ticket
 - historical_references: ONLY include past incidents that are DIRECTLY relevant to the
   current situation AND have similarity >= 0.50. If an incident is about a completely
@@ -109,6 +109,15 @@ Instructions:
   3 irrelevant entries.
 - execution_summary: populate from the EXECUTION SUMMARY section above (null if skipped)
 - full_analysis_markdown: copy the ANALYSIS TEXT verbatim
+
+SEVERITY CLASSIFICATION RUBRIC:
+  - CRITICAL: revenue drop >= 25% OR 2+ domains report simultaneous failures/anomalies
+  - HIGH: revenue drop 10-24% OR exactly 1 domain reports a failure/anomaly
+  - MEDIUM: revenue drop 1-9% OR operational issue with no direct revenue impact (e.g., overstocking, campaign pause)
+  - LOW: no confirmed revenue impact OR minor operational issue
+
+When multiple severity rules could apply, always choose the MORE SEVERE classification.
+For example, if revenue dropped 15% (HIGH) but also 2+ domains report issues (CRITICAL), classify as CRITICAL.
 """
 
     # ── Call LLM with structured output ──────────────────────────

@@ -125,9 +125,9 @@ def _persist_chat(thread_id: str, question: str, answer: str, structured: dict |
 
 def _try_save_incident(thread_id: str, structured: dict, target_date_str: str) -> None:
     """
-    If the analysis produced a high/critical result, save it as a past incident
-    in both PostgreSQL and Qdrant so future queries can reference it.
-    Uses a deterministic ID (AI-<first 8 chars of thread_id>) — idempotent.
+    If the analysis produced a high/critical result, save it as a DRAFT in PostgreSQL only.
+    Do NOT embed to Qdrant yet — user must verify and resolve via PATCH endpoint first.
+    This prevents "Pending resolution" from polluting semantic memory.
     """
     severity = structured.get("severity", "")
     if severity not in ("high", "critical"):
@@ -143,28 +143,14 @@ def _try_save_incident(thread_id: str, structured: dict, target_date_str: str) -
         date_str = target_date_str or date.today().isoformat()
         if not desc:
             return
-        # 1. PostgreSQL
+        # PostgreSQL only — status='draft' prevents auto-embedding to Qdrant
         execute_sync(
             "INSERT INTO past_incidents "
-            "(id, date, description, root_causes, actions_taken, outcome, resolution_time_days) "
-            "VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6, 0) ON CONFLICT (id) DO NOTHING",
-            inc_id, date_str, desc, json.dumps(causes), json.dumps(actions), "Pending resolution",
+            "(id, date, description, root_causes, actions_taken, outcome, resolution_time_days, status) "
+            "VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6, 0, $7) ON CONFLICT (id) DO NOTHING",
+            inc_id, date_str, desc, json.dumps(causes), json.dumps(actions), "Pending resolution", "draft",
         )
-        # 2. Qdrant
-        from memory.long_term import get_client, ensure_collection, _embed, COLLECTION_NAME
-        from qdrant_client.models import PointStruct
-        ensure_collection()
-        vector    = _embed(f"{desc}. Root causes: {', '.join(causes)}.")
-        qdrant_id = int(hashlib.sha256(inc_id.encode()).hexdigest()[:16], 16)
-        get_client().upsert(
-            collection_name=COLLECTION_NAME,
-            points=[PointStruct(id=qdrant_id, vector=vector, payload={
-                "incident_id": inc_id, "date": date_str, "description": desc,
-                "root_causes": causes, "actions_taken": actions,
-                "outcome": "Pending resolution", "resolution_time_days": 0,
-            })],
-        )
-        print(f"[AUTO-INCIDENT] Saved {inc_id} ({severity}) to DB + Qdrant")
+        print(f"[AUTO-INCIDENT] Saved {inc_id} ({severity}) to DB as DRAFT (awaiting resolution)")
     except Exception as e:
         print(f"[AUTO-INCIDENT] Failed: {e}")
 
@@ -183,6 +169,9 @@ def _invoke_pipeline_streaming(req: AnalyzeRequest, event_queue: queue.Queue) ->
         event_queue.put({"type": event_type, **kwargs})
 
     history = _get_history(req.thread_id)
+    # Cap history to last 20 turns (40 messages) to prevent token explosion
+    if len(history) > 40:
+        history = history[-40:]
     history = history + [{"role": "user", "content": req.question}]
 
     initial_state = _build_initial_state(req, history)

@@ -5,14 +5,16 @@
 from langgraph.prebuilt import create_react_agent  # builds the ReAct agent graph
 from agents.base import llm                         # shared Azure LLM
 from tools.support_tools import (
-    get_support_summary,  # returns total tickets, CSAT score, open vs resolved counts
-    get_top_complaints,   # returns complaint types ranked by volume
+    get_support_summary,    # returns total tickets, CSAT score, open vs resolved counts
+    get_top_complaints,     # returns complaint types ranked by volume
+    compare_support,        # compares support metrics between two dates
 )
 
 # Support-only tools — scoped to customer experience domain
 SUPPORT_TOOLS = [
     get_support_summary,
     get_top_complaints,
+    compare_support,
 ]
 
 # Tells the LLM its role and what to include in the response
@@ -27,6 +29,11 @@ and whether any complaints correlate with sales issues.
 If prior findings from other agents are provided in the question, check alignment:
 for example, if inventory found a stockout, verify whether "out of stock" complaints
 spiked on the same date — this confirms the stockout had customer-visible impact.
+
+CRITICAL: When comparing support metrics between two dates, ALWAYS call compare_support
+instead of manually comparing two separate get_support_summary calls. This tool directly
+calculates the ticket volume and CSAT changes, eliminating the risk of miscalculation
+or missing complaint type comparisons.
 
 DATA GAPS: If a tool returns no data for a date, note this explicitly in your report.
 Do not assume complaint volumes — only report confirmed numbers from tool results.

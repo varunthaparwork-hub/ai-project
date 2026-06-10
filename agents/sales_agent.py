@@ -21,12 +21,13 @@
 from langgraph.prebuilt import create_react_agent  # builds a ReAct agent as a LangGraph graph
 from agents.base import llm                         # shared Azure LLM instance
 from tools.sales_tools import (
-    get_sales_summary,       # fetches revenue, orders, returns for a date
-    compare_sales,           # calculates % change between two dates
-    get_product_performance, # shows per-product units and revenue
-    get_regional_sales,      # breaks down sales by region
-    get_sales_trend,         # returns daily trend over a date range
-    get_sales_anomaly,       # z-score vs rolling baseline — answers "is this drop normal?"
+    get_sales_summary,            # fetches revenue, orders, returns for a date
+    compare_sales,                # calculates % change between two dates
+    get_product_performance,      # shows per-product units and revenue
+    compare_product_performance,  # side-by-side product comparison between dates
+    get_regional_sales,           # breaks down sales by region
+    get_sales_trend,              # returns daily trend over a date range
+    get_sales_anomaly,            # z-score vs rolling baseline — answers "is this drop normal?"
 )
 
 # Only sales tools are given to this agent.
@@ -36,6 +37,7 @@ SALES_TOOLS = [
     get_sales_summary,
     compare_sales,
     get_product_performance,
+    compare_product_performance,
     get_regional_sales,
     get_sales_trend,
     get_sales_anomaly,
@@ -57,6 +59,12 @@ Use get_sales_anomaly when the user asks whether a drop is "normal", "expected",
 "an anomaly", or "significant". It returns a z-score and a verdict
 (strong_anomaly / mild_anomaly / normal) against a rolling baseline. If
 insufficient_history is True, fall back to compare_sales.
+
+CRITICAL: When diagnosing a revenue drop or anomaly between two dates,
+ALWAYS call compare_product_performance instead of manually comparing
+two separate get_product_performance calls. This tool directly calculates
+the absolute and percentage change for each product, eliminating the risk
+of miscalculation or missed products.
 
 DATA GAPS: If a tool returns {{"error": "No data found"}}, try an adjacent date
 (one day earlier or later). If still no data, explicitly state which dates had

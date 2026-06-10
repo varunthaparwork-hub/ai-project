@@ -83,6 +83,15 @@ products named in the analysis). If the analysis is also empty, set is_action_ne
 return an empty proposed_actions list. NEVER produce an action whose description is just the user's
 question with "Execute as requested:" prepended — that is meaningless and forbidden.
 
+AUTOMATIC ACTION TRIGGERS (data-driven signals, apply regardless of question phrasing):
+These triggers fire based on what the analysis reveals, not on question keywords:
+- If ANY campaign status='paused': propose resume_campaign (recovery action — get campaign active again)
+- If ANY product with stock=0: propose restock_product (prevent ongoing revenue loss)
+- If ANY product with overstock_ratio > 2.0: propose apply_discount (clear excess, free up cash)
+- If complaint volume is above baseline: propose create_support_ticket (escalate, prevent churn)
+These are data-driven signals, not question-phrasing signals. Apply them whenever the analysis
+contains the corresponding signal, regardless of whether the user asked for it.
+
 ANALYSIS-DERIVED RULES (only apply when user question is NOT a direct command):
 - If the user question is purely analytical (e.g. "why did sales drop") set is_action_needed=False
 - If the analysis identifies OVERSTOCKED products, propose apply_discount to clear excess inventory

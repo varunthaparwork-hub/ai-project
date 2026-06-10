@@ -28,6 +28,10 @@ def ask(question: str, target_date: str = "", comparison_date: str = "",
     if history is None:
         history = []
 
+    # Cap history to last 20 turns (40 messages) to prevent token explosion
+    if len(history) > 40:
+        history = history[-40:]
+
     # Add the new user question to the conversation history
     history = history + [{"role": "user", "content": question}]
 
@@ -130,7 +134,21 @@ def ask(question: str, target_date: str = "", comparison_date: str = "",
             )
             print("[MEMORY] Incident saved to long-term memory.")
 
-    return final, history  # return both so the caller can pass history into the next turn
+    return {
+        "final_answer": final,
+        "history": history,
+        "structured_output": result.get("structured_output"),
+        "proposed_actions": result.get("proposed_actions"),
+        "execution_report": result.get("execution_report"),
+        "execution_results": result.get("execution_results"),
+        "sales_analysis": result.get("sales_analysis"),
+        "inventory_analysis": result.get("inventory_analysis"),
+        "marketing_analysis": result.get("marketing_analysis"),
+        "support_analysis": result.get("support_analysis"),
+        "revision_count": result.get("revision_count", 0),
+        "target_date": result.get("target_date"),
+        "comparison_date": result.get("comparison_date"),
+    }
 
 
 if __name__ == "__main__":
@@ -185,4 +203,5 @@ if __name__ == "__main__":
         turn_count += 1  # increment after each successful question
 
         # Run the full pipeline — pass thread_id and history so memory works across turns
-        final, history = ask(question, target_date, comparison_date, thread_id, history)
+        response = ask(question, target_date, comparison_date, thread_id, history)
+        history = response["history"]

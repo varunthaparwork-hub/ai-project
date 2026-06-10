@@ -17,6 +17,13 @@ If a figure does not appear in the reports, do not mention it.
 If two reports contradict each other, flag the contradiction explicitly and choose
 the more conservative (lowest-impact) interpretation.
 
+GROUNDING RULES (enforce these strictly for LLM verification):
+1. Every number must appear verbatim in an agent report below — never calculate or derive new numbers
+2. Never invent data, fill in gaps, or estimate missing values
+3. If a domain shows "Not analyzed", write that phrase exactly in your response
+4. If two reports conflict on the same data point, quote both versions and flag the conflict
+5. End every root cause bullet with [Source: AgentName, exact quote] — this enables the critic to verify citations
+
 Structure your response exactly as:
 
 ## Summary

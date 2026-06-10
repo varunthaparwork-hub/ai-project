@@ -24,22 +24,22 @@ def memory_node(state: OpsState) -> OpsState:
     # Prepend user question to anchor semantic search to user intent.
     query_parts = []
 
-    # Always include the user's original question first for intent anchoring
+    # Always include the full user question first, no truncation — highest priority for intent anchoring
     user_question = state.get("user_question", "")
     if user_question:
-        query_parts.append(user_question.split("\n")[0])  # first line only, to stay focused
+        query_parts.append(user_question)
 
     if state.get("sales_analysis"):
-        query_parts.append(state["sales_analysis"][:600])  # increased from 300 to 600
+        query_parts.append(state["sales_analysis"][:1000])  # increased from 600 to 1000
 
     if state.get("inventory_analysis"):
-        query_parts.append(state["inventory_analysis"][:600])  # increased from 300 to 600
+        query_parts.append(state["inventory_analysis"][:1000])  # increased from 600 to 1000
 
     if state.get("marketing_analysis"):
-        query_parts.append(state["marketing_analysis"][:600])  # increased from 300 to 600
+        query_parts.append(state["marketing_analysis"][:1000])  # increased from 600 to 1000
 
     if state.get("support_analysis"):
-        query_parts.append(state["support_analysis"][:600])  # also include support for completeness
+        query_parts.append(state["support_analysis"][:1000])  # also include support for completeness
 
     # If no agent ran yet (e.g. pure memory question), use the raw user question
     if not query_parts:

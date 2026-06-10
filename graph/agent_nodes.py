@@ -52,7 +52,7 @@ def inventory_node(state: OpsState) -> OpsState:
     if state.get("sales_analysis"):
         sales_context = (
             "\n\nSALES AGENT FINDINGS (cross-reference these with your stock data):\n"
-            + state["sales_analysis"][:1500]
+            + state["sales_analysis"][:2000]
         )
 
     # Determine whether this is a HISTORICAL question (past date) or a CURRENT inventory check.
@@ -126,9 +126,9 @@ def marketing_node(state: OpsState) -> OpsState:
     # Provide prior findings so marketing can correlate campaign drops with revenue/stock issues
     prior_context = ""
     if state.get("sales_analysis"):
-        prior_context += f"\n\nSALES FINDINGS:\n{state['sales_analysis'][:1200]}"
+        prior_context += f"\n\nSALES FINDINGS:\n{state['sales_analysis'][:2000]}"
     if state.get("inventory_analysis"):
-        prior_context += f"\n\nINVENTORY FINDINGS:\n{state['inventory_analysis'][:1200]}"
+        prior_context += f"\n\nINVENTORY FINDINGS:\n{state['inventory_analysis'][:2000]}"
     if prior_context:
         prior_context = "\n\nPRIOR AGENT FINDINGS (use to guide your campaign analysis):" + prior_context
 
@@ -154,7 +154,7 @@ def support_node(state: OpsState) -> OpsState:
     prior_context = ""
     for label, key in [("SALES", "sales_analysis"), ("INVENTORY", "inventory_analysis"), ("MARKETING", "marketing_analysis")]:
         if state.get(key):
-            prior_context += f"\n\n{label} FINDINGS:\n{state[key][:1000]}"
+            prior_context += f"\n\n{label} FINDINGS:\n{state[key][:2000]}"
     if prior_context:
         prior_context = "\n\nPRIOR AGENT FINDINGS (check if complaints correlate with these):" + prior_context
 

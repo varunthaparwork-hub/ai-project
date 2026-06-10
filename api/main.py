@@ -42,7 +42,7 @@ _hitl_mod.hitl_node = _api_hitl
 # ── Routers (imported AFTER patch so workflow compiles with patched HITL) ─────
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.router import analysis, actions, history, obs, chats
+from api.router import analysis, actions, history, obs, chats, incidents
 
 
 @asynccontextmanager
@@ -91,6 +91,7 @@ app.include_router(actions.router,  prefix="/api", tags=["Actions"])
 app.include_router(history.router,  prefix="/api", tags=["History"])
 app.include_router(obs.router,      prefix="/api", tags=["Observability"])
 app.include_router(chats.router,    prefix="/api", tags=["Chats"])
+app.include_router(incidents.router, prefix="/api", tags=["Incidents"])
 
 
 @app.get("/health", tags=["Health"])
