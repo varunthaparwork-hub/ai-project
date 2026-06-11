@@ -46,10 +46,15 @@ def build_streamlit_graph():
     graph.add_node("formatter",       formatter_node)
 
     graph.add_edge(START,       "planner")
+    # Parallel agent execution (same as main workflow)
     graph.add_edge("planner",   "sales")
-    graph.add_edge("sales",     "inventory")
-    graph.add_edge("inventory", "marketing")
-    graph.add_edge("marketing", "support")
+    graph.add_edge("planner",   "inventory")
+    graph.add_edge("planner",   "marketing")
+    graph.add_edge("planner",   "support")
+    # All agents converge to memory
+    graph.add_edge("sales",     "memory")
+    graph.add_edge("inventory", "memory")
+    graph.add_edge("marketing", "memory")
     graph.add_edge("support",   "memory")
     graph.add_edge("memory",    "synthesis")
     graph.add_edge("synthesis", "critic")

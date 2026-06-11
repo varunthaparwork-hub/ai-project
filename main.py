@@ -21,8 +21,11 @@ def ask(question: str, target_date: str = "", comparison_date: str = "",
                         same thread_id = AI remembers previous turns in this session
     - history         : running list of past messages, passed in and updated each turn
     """
-    from graph.workflow import ops_app  # lazy: keeps import safe when main.py is imported by FastAPI
     from graph.state import OpsState
+    # For API/non-interactive: use Streamlit workflow (non-blocking HITL).
+    # For interactive CLI: would use blocking workflow, but that's not loaded here.
+    # Since this is imported by FastAPI, always use non-blocking.
+    from graph.workflow_streamlit import streamlit_app_graph as ops_app
 
     # Default mutable argument fix — never use [] as default in Python function signatures
     if history is None:
@@ -83,7 +86,26 @@ def ask(question: str, target_date: str = "", comparison_date: str = "",
 
     # ops_app.invoke() runs the full LangGraph graph from START to END
     # It processes every node in order and returns the final state
-    result = ops_app.invoke(initial_state, config=config)
+    import threading
+
+    result = None
+    error = None
+
+    def run_graph():
+        nonlocal result, error
+        try:
+            result = ops_app.invoke(initial_state, config=config)
+        except Exception as e:
+            error = e
+
+    graph_thread = threading.Thread(target=run_graph, daemon=True)
+    graph_thread.start()
+    graph_thread.join(timeout=120)  # Wait max 120 seconds
+
+    if graph_thread.is_alive():
+        raise TimeoutError("Graph execution exceeded 120 second timeout (likely database connection issue)")
+    if error:
+        raise error
 
     # Safely get final answer — fall back to draft if critic didn't set final_answer
     final = result.get("final_answer") or result.get("synthesis_draft") or "No answer generated."
