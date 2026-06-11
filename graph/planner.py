@@ -85,6 +85,16 @@ For vague follow-ups that reference prior analysis ("it", "this", "that"), inher
 domains and target_date from the previous turn's context — re-run the relevant agents so
 the action_planner has fresh data to recommend against.
 
+SCOPE DETECTION HIERARCHY (apply in order):
+  1. Check if DIRECT ACTION RULE applies → set all needs_* = False
+  2. Check if question explicitly mentions SINGLE DOMAIN keywords:
+     - "inventory" (any form) → needs_inventory=True only
+     - "sales" → needs_sales=True only
+     - "campaign" OR "marketing" → needs_marketing=True only
+     - "support" OR "complaint" OR "ticket" → needs_support=True only
+  3. If no single domain match, check DEFAULT-TO-ALL patterns
+  4. Default: ALL agents for safety (better to run extra than miss critical context)
+
 DEFAULT-TO-ALL RULE (CRITICAL): If the question matches ANY of these patterns,
 activate ALL FOUR agents (needs_sales=True, needs_inventory=True, needs_marketing=True, needs_support=True)
 regardless of specificity:
@@ -99,7 +109,7 @@ regardless of specificity:
   5. Open-ended diagnostic: "analyze", "review", "assess" (without specifying a single domain)
 
 For narrow, explicitly scoped questions that name one domain, only activate relevant agents:
-  - "inventory status" OR "inventory issues" OR "stock levels" → needs_inventory only
+  - "inventory" OR "inventory status" OR "inventory issues" OR "stock levels" OR "current inventory" OR "inventory level" → needs_inventory only
   - "sales for June" OR "sales performance" → needs_sales only
   - "campaign performance" OR "marketing" → needs_marketing only
   - "customer complaints" OR "support" → needs_support only
