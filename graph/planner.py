@@ -99,10 +99,10 @@ regardless of specificity:
   5. Open-ended diagnostic: "analyze", "review", "assess" (without specifying a single domain)
 
 For narrow, explicitly scoped questions that name one domain, only activate relevant agents:
-  - "inventory status" → needs_inventory only
-  - "sales for June" → needs_sales only
-  - "campaign performance" → needs_marketing only
-  - "customer complaints" → needs_support only
+  - "inventory status" OR "inventory issues" OR "stock levels" → needs_inventory only
+  - "sales for June" OR "sales performance" → needs_sales only
+  - "campaign performance" OR "marketing" → needs_marketing only
+  - "customer complaints" OR "support" → needs_support only
 
 Erring on the side of running more agents is better than missing critical context.
 

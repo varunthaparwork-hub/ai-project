@@ -5,18 +5,26 @@
 # Think of it as a shared whiteboard the shole team can read and write on
 
 
-from typing import TypedDict, Optional, List
+from typing import TypedDict, Optional, List, Annotated
+
+def _keep_first(a, b):
+    """Reducer: when multiple nodes try to write the same field, keep the first value."""
+    return a if a is not None else b
+
+def _override(a, b):
+    """Reducer: take the latest (b) value."""
+    return b
 
 # OpsState is the shared state
 class OpsState(TypedDict):
-    # The original question from the user
-    user_question: str
+    # The original question from the user (read-only, set at init)
+    user_question: Annotated[str, _keep_first]
 
-    # Planner fills these -> which agents should run
-    needs_sales: bool
-    needs_inventory: bool
-    needs_marketing: bool
-    needs_support: bool
+    # Planner fills these -> which agents should run (all agents read/return these)
+    needs_sales: Annotated[bool, _keep_first]
+    needs_inventory: Annotated[bool, _keep_first]
+    needs_marketing: Annotated[bool, _keep_first]
+    needs_support: Annotated[bool, _keep_first]
 
     # Each agent writes its findings here
     sales_analysis: Optional[str]
@@ -43,9 +51,9 @@ class OpsState(TypedDict):
     target_date: str
     comparison_date: str
 
-    # Stores the full conversation history for this thread
+    # Stores the full conversation history for this thread (read-only after init)
     # Each entry is a dict with keys "role" (user/assistant) and "content" (the text)
-    conversation_history: List[dict]
+    conversation_history: Annotated[List[dict], _keep_first]
 
     # Action Planner fills this — each dict has: action_id, description,
     # tool_name, tool_args, priority, estimated_impact
