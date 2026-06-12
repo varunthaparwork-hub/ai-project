@@ -111,7 +111,10 @@ def critic_node(state: OpsState) -> OpsState:
 
     # Draft approved (or max revisions reached) — promote to final answer
     if current_revision_count >= 2:
-        print(f"[CRITIC] Max revisions (2) reached — accepting revised draft (confidence: {decision.confidence_score:.2f}).")
+        if low_confidence:
+            print(f"[CRITIC] ⚠️  Max revisions reached. Accepting draft despite LOW confidence ({decision.confidence_score:.2f}). Manual review recommended.")
+        else:
+            print(f"[CRITIC] Max revisions (2) reached — accepting revised draft (confidence: {decision.confidence_score:.2f}).")
     elif current_revision_count == 1:
         print(f"[CRITIC] Revised draft approved (confidence: {decision.confidence_score:.2f}).")
     else:

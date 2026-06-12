@@ -186,7 +186,8 @@ def synthesis_node(state: OpsState) -> OpsState:
         )}
 
     # SIMPLE QUERY DETECTION: If user is just asking for current status/data (not analysis),
-    # and only ONE agent ran, answer directly without the full synthesis framework
+    # and only ONE agent ran, still synthesize through LLM for readability (critic expects clean output).
+    # Synthesis is still required even for simple queries — skipping it would give critic raw tool output.
     agent_count = sum([
         bool(state.get("sales_analysis")),
         bool(state.get("inventory_analysis")),
@@ -201,16 +202,21 @@ def synthesis_node(state: OpsState) -> OpsState:
     ]) and "?" in user_q and "why" not in user_q and "how did" not in user_q
 
     if is_simple_query and agent_count == 1:
-        print(f"\n[SYNTHESIS] Simple query detected — answering directly without full analysis framework.")
-        # Just return the agent's findings directly
-        if state.get("inventory_analysis"):
-            return {**state, "synthesis_draft": state["inventory_analysis"]}
-        elif state.get("sales_analysis"):
-            return {**state, "synthesis_draft": state["sales_analysis"]}
-        elif state.get("marketing_analysis"):
-            return {**state, "synthesis_draft": state["marketing_analysis"]}
-        elif state.get("support_analysis"):
-            return {**state, "synthesis_draft": state["support_analysis"]}
+        print(f"\n[SYNTHESIS] Simple query detected — using lightweight synthesis.")
+        # Even for simple queries, run LLM synthesis to produce clean readable output (critic expects this, not raw tool output)
+        raw_incidents = state.get("past_incidents") or []
+        incidents_text = "No similar past incidents found in memory."
+
+        prompt = SYNTHESIS_PROMPT.format(
+            sales          = state.get("sales_analysis")     or "Not analyzed",
+            inventory      = state.get("inventory_analysis") or "Not analyzed",
+            marketing      = state.get("marketing_analysis") or "Not analyzed",
+            support        = state.get("support_analysis")   or "Not analyzed",
+            past_incidents = incidents_text,
+            question       = state["user_question"],
+        )
+        response = llm.invoke([HumanMessage(content=prompt)])
+        return {**state, "synthesis_draft": response.content}
 
     # First pass - produce initial draft from agent reports
     print("\n[SYNTHESIS] Producing initial draft....")

@@ -37,6 +37,17 @@ TOP_K              = 3             # how many similar incidents to return by def
 
 # ── Singleton setup ──────────────────────────────────────────
 _client: Optional[QdrantClient] = None
+_embedder = None  # lazily initialized on first embed call
+
+
+def get_embedder():
+    """Returns the shared TextEmbedding model, loading it on first call."""
+    global _embedder
+    if _embedder is None:
+        from fastembed import TextEmbedding
+        _embedder = TextEmbedding(model_name=EMBEDDING_MODEL)
+        print(f"[MEMORY] Embedder loaded: {EMBEDDING_MODEL}")
+    return _embedder
 
 
 def get_client() -> QdrantClient:
@@ -75,9 +86,8 @@ def ensure_collection() -> None:
 
 
 def _embed(text: str) -> list[float]:
-    """Converts text to a vector using fastembed (no torch, ~50MB model)."""
-    from fastembed import TextEmbedding
-    embedder = TextEmbedding(model_name=EMBEDDING_MODEL)
+    """Converts text to a vector using fastembed (shared model loaded once)."""
+    embedder = get_embedder()
     return list(list(embedder.embed([text]))[0])
 
 

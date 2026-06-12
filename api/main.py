@@ -20,26 +20,7 @@ if _ls_key:
 else:
     print("[LANGSMITH] No API key found — tracing disabled.")
 
-# ── Patch HITL BEFORE graph.workflow is imported anywhere ─────────────────────
-# workflow.py binds hitl_node at import time (line: from graph.hitl import hitl_node).
-# We must replace graph.hitl.hitl_node BEFORE any router triggers that import.
-# In API mode there is no stdin — proposed actions are returned to the client
-# for approval via POST /api/actions/approve instead.
-import graph.hitl as _hitl_mod
-
-
-def _api_hitl(state):
-    """API-mode HITL: skip stdin, return proposed actions to the client."""
-    proposed = state.get("proposed_actions") or []
-    if not proposed or state.get("skip_execution"):
-        return {**state, "approved_actions": [], "skip_execution": True}
-    # Don't execute yet — client will call /api/actions/approve
-    return {**state, "approved_actions": [], "skip_execution": True}
-
-
-_hitl_mod.hitl_node = _api_hitl
-
-# ── Routers (imported AFTER patch so workflow compiles with patched HITL) ─────
+# ── FastAPI setup ───────────────────────────────────────────────────────────
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.router import analysis, actions, history, obs, chats, incidents

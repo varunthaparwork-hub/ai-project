@@ -18,7 +18,7 @@ from graph.formatter import formatter_node
 
 
 def router_after_critic(state: OpsState) -> str:
-    if state.get("needs_revision") and state.get("revision_count", 0) == 1:
+    if state.get("needs_revision") and state.get("revision_count", 0) < 2:
         return "synthesis"
     return "action_planner"
 

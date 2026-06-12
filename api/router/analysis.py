@@ -18,7 +18,10 @@ router = APIRouter()
 _executor = ThreadPoolExecutor(max_workers=4)
 
 # Server-side session store: thread_id → { history, proposed_actions }
+# Limited to 100 entries to prevent unbounded memory growth on long-running servers
+# Least-recently-used sessions are evicted when size exceeds 100
 _sessions: dict = {}
+_SESSIONS_MAX = 100
 
 OBS_LOG = Path(__file__).resolve().parent.parent.parent / "observability" / "runs.jsonl"
 
@@ -70,6 +73,14 @@ def _build_initial_state(req: AnalyzeRequest, history: list) -> OpsState:
         "streamlit_approved_actions": None,
         "streamlit_skip_execution":   False,
     }
+
+
+def _evict_lru_session():
+    """Evicts the least-recently-used session when _sessions exceeds _SESSIONS_MAX."""
+    if len(_sessions) > _SESSIONS_MAX:
+        # Remove the oldest key (first inserted) — simple LRU without timestamps
+        oldest_key = next(iter(_sessions))
+        del _sessions[oldest_key]
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -246,6 +257,7 @@ def _invoke_pipeline_streaming(req: AnalyzeRequest, event_queue: queue.Queue) ->
     history  = history + [{"role": "assistant", "content": final}]
     proposed = result.get("proposed_actions") or []
 
+    _evict_lru_session()
     _sessions[req.thread_id] = {"history": history, "proposed_actions": proposed}
     _log_obs(req, result, latency_ms)
     _persist_chat(req.thread_id, req.question, final, result.get("structured_output"))
@@ -282,6 +294,7 @@ def _invoke_pipeline(req: AnalyzeRequest) -> dict:
     history  = history + [{"role": "assistant", "content": final}]
     proposed = result.get("proposed_actions") or []
 
+    _evict_lru_session()
     _sessions[req.thread_id] = {"history": history, "proposed_actions": proposed}
     _log_obs(req, result, latency_ms)
     _persist_chat(req.thread_id, req.question, final, result.get("structured_output"))

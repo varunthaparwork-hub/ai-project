@@ -38,8 +38,8 @@ def formatter_node(state: OpsState) -> OpsState:
         proposed  = state.get("proposed_actions") or []
         approved  = state.get("approved_actions") or []
         results   = state.get("execution_results") or []
-        succeeded = [r for r in results if r.get("status") == "success"]
-        failed    = [r for r in results if r.get("status") == "error"]
+        succeeded = [r for r in results if r.get("success") is True]
+        failed    = [r for r in results if r.get("success") is not True]
 
         execution_summary_dict = {
             "total_proposed": len(proposed),

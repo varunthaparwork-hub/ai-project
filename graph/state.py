@@ -26,11 +26,11 @@ class OpsState(TypedDict):
     needs_marketing: Annotated[bool, _keep_first]
     needs_support: Annotated[bool, _keep_first]
 
-    # Each agent writes its findings here
-    sales_analysis: Optional[str]
-    inventory_analysis: Optional[str]
-    marketing_analysis: Optional[str]
-    support_analysis: Optional[str]
+    # Each agent writes its findings here (use _override to allow concurrent writes from parallel agents)
+    sales_analysis: Annotated[Optional[str], _override]
+    inventory_analysis: Annotated[Optional[str], _override]
+    marketing_analysis: Annotated[Optional[str], _override]
+    support_analysis: Annotated[Optional[str], _override]
 
     # Synthesis node writes the combined answer here (draft)
     synthesis_draft: Optional[str]

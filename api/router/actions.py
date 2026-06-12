@@ -28,8 +28,6 @@ async def approve_actions(req: ApproveRequest):
 
     # Build a minimal state so the executor node can run standalone
     minimal_state: OpsState = {
-        "approved_actions":  approved,
-        "skip_execution":    False,
         "user_question": "", "needs_sales": False, "needs_inventory": False,
         "needs_marketing": False, "needs_support": False,
         "sales_analysis": None, "inventory_analysis": None,
@@ -38,8 +36,12 @@ async def approve_actions(req: ApproveRequest):
         "needs_revision": False, "revision_count": 0, "final_answer": None,
         "target_date": "", "comparison_date": "", "conversation_history": [],
         "proposed_actions": approved, "action_plan_reasoning": None,
+        "approved_actions": approved,
+        "skip_execution": False,
         "execution_report": None, "execution_results": None,
         "past_incidents": None, "structured_output": None,
+        "streamlit_approved_actions": None,
+        "streamlit_skip_execution": False,
     }
 
     loop = asyncio.get_event_loop()
